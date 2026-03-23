@@ -42,7 +42,9 @@ export default function Auth() {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        console.log('User created, sending verification email...');
         await sendEmailVerification(userCredential.user);
+        console.log('Verification email sent successfully!');
         setVerificationSent(true);
       }
     } catch (err: any) {

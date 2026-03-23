@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Fuel, Navigation, TrendingUp, Info, CheckCircle, Plus } from 'lucide-react';
+import { MapPin, Fuel, Navigation, TrendingUp, Info, CheckCircle, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../lib/firebase';
 import { collection, query as fsQuery, where, getDocs, Timestamp } from 'firebase/firestore';
@@ -69,7 +69,7 @@ function findPriceForStation(stationName: string, priceData: Record<string, stri
 }
 
 export default function Dashboard() {
-  const [radius, setRadius] = useState(15);
+  const [radius] = useState(20);
   const [fuelType, setFuelType] = useState<FuelType>('bensin');
   const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,11 +98,11 @@ export default function Dashboard() {
         const county = geoData?.address?.county?.replace(' län', '') || geoData?.address?.state?.replace(' län', '') || 'Stockholms';
         const lanKey = Object.entries(countyToLan).find(([k]) => county.includes(k))?.[1] || 'stockholms-lan';
 
-        // Fetch real prices from Henrik Hjelm API
+        // Fetch real prices from Henrik Hjelm API (with CORS proxy fallback)
         let apiPrices: Record<string, string> = {};
         try {
-          const priceRes = await fetch(`https://henrikhjelm.se/api/getdata.php?lan=${lanKey}`);
-          apiPrices = await priceRes.json();
+          const priceRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://henrikhjelm.se/api/getdata.php?lan=${lanKey}`)}`);
+          if (priceRes.ok) apiPrices = await priceRes.json();
         } catch (e) {
           console.warn('Could not fetch real prices, using fallback');
         }
@@ -234,32 +234,20 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Filters */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card p-6 mb-8">
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-1">
-            {(Object.keys(fuelNames) as FuelType[]).map((type) => (
-              <button
-                key={type}
-                onClick={() => setFuelType(type)}
-                className={`whitespace-nowrap px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
-                  fuelType === type ? 'bg-zinc-900 text-white shadow-lg' : 'bg-zinc-50 text-zinc-400 hover:text-zinc-600'
-                }`}
-              >
-                {fuelNames[type]}
-              </button>
-            ))}
-          </div>
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-zinc-400" />
-                <span className="text-xs font-black text-zinc-800 uppercase tracking-widest">Sökradie</span>
-              </div>
-              <span className="bg-brand-orange/10 text-brand-orange px-3 py-1 rounded-full text-xs font-black">{radius} km</span>
-            </div>
-            <input type="range" min="1" max="50" value={radius} onChange={(e) => setRadius(parseInt(e.target.value))} />
-          </div>
+      {/* Filters - fuel type only, no slider */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card p-5 mb-8">
+        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
+          {(Object.keys(fuelNames) as FuelType[]).map((type) => (
+            <button
+              key={type}
+              onClick={() => setFuelType(type)}
+              className={`whitespace-nowrap px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
+                fuelType === type ? 'bg-zinc-900 text-white shadow-lg' : 'bg-zinc-50 text-zinc-400 hover:text-zinc-600'
+              }`}
+            >
+              {fuelNames[type]}
+            </button>
+          ))}
         </div>
       </motion.div>
 

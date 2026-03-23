@@ -1,73 +1,73 @@
-# React + TypeScript + Vite
+# ⛽ Bensinpris App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[![Vercel Deployment](https://img.shields.io/badge/Deploy-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 
-Currently, two official plugins are available:
+En modern, mobilanpassad webbapplikation för att hitta de billigaste bensinstationerna i din närhet och logga dina tankningar med stil.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+![Dashboard Preview](https://github.com/Farhad030619/benzinpriser/raw/main/public/preview.png)
 
-## React Compiler
+## ✨ Funktioner
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- 📍 **Hitta stationer**: Automatisk positionsbestämning och sökning via Overpass API.
+- 💰 **Prisjämförelse**: Hitta snabbt den billigaste stationen i din valda radie.
+- 📊 **Trendanalys**: Se prisutveckling och trender baserat på din position.
+- ⛽ **Drivmedelsstöd**: Växla mellan Bensin 95, 98, Diesel och E85.
+- 📱 **PWA-Ready**: Installera appen direkt på hemskärmen.
+- 🔒 **Säkerhet**: Autentisering och datalagring via Firebase (Firestore).
+- 🎨 **Premium UI**: Glassmorphism, responsiv design och mjuka animationer med Framer Motion.
 
-## Expanding the ESLint configuration
+## 🚀 Kom igång
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Förutsättningar
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Node.js (v18+)
+- Firebase-konto
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Installation
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. Klona repot:
+   ```bash
+   git clone https://github.com/Farhad030619/benzinpriser.git
+   cd benzinpriser
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+2. Installera beroenden:
+   ```bash
+   npm install
+   ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+3. Konfigurera miljövariabler:
+   Skapa en `.env`-fil i roten och lägg till dina Firebase-uppgifter:
+   ```env
+   VITE_FIREBASE_API_KEY=your_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   ```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+4. Kör lokalt:
+   ```bash
+   npm run dev
+   ```
+
+## 🛠 Tech Stack
+
+- **Frontend**: React, Vite, TypeScript
+- **Styling**: Tailwind CSS
+- **Animationer**: Framer Motion
+- **Backend/DB**: Firebase Firestore & Auth
+- **Ikoner**: Lucide React
+- **Källkod**: [GitHub](https://github.com/Farhad030619/benzinpriser)
+
+## 📦 Deployment
+
+Rekommenderas att hostas på **Vercel** eller **Netlify**. Kom ihåg att lägga till dina miljövariabler i dashboarden för din hosting-tjänst.
+
+---
+
+Designad och utvecklad med ❤️ för en bättre tankupplevelse.

@@ -27,12 +27,19 @@ export default function Profile({ user }: { user: User }) {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sek || !lit) return;
+    const valSek = parseFloat(sek);
+    const valLit = parseFloat(lit);
+    
+    if (!sek || !lit || valSek < 0 || valLit < 0) {
+      alert('Vänligen ange giltiga positiva värden.');
+      return;
+    }
+    
     setLoading(true);
     try {
       await addDoc(collection(db, 'users', user.uid, 'logs'), {
-        sek: parseFloat(sek),
-        lit: parseFloat(lit),
+        sek: valSek,
+        lit: valLit,
         date: new Date()
       });
       setSek(''); setLit('');
@@ -96,11 +103,11 @@ export default function Profile({ user }: { user: User }) {
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="space-y-1.5">
             <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">Belopp (kr)</label>
-            <input type="number" value={sek} onChange={(e) => setSek(e.target.value)} className="input-field" placeholder="800" required />
+            <input type="number" min="0" step="0.01" value={sek} onChange={(e) => setSek(e.target.value)} className="input-field" placeholder="800" required />
           </div>
           <div className="space-y-1.5">
             <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">Volym (lit)</label>
-            <input type="number" value={lit} onChange={(e) => setLit(e.target.value)} className="input-field" placeholder="40" required />
+            <input type="number" min="0" step="0.01" value={lit} onChange={(e) => setLit(e.target.value)} className="input-field" placeholder="40" required />
           </div>
         </div>
         <motion.button

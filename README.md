@@ -1,8 +1,12 @@
-# ⛽ Bensinpris App
-
 En modern, mobilanpassad webbapplikation för att hitta de billigaste bensinstationerna i din närhet och logga dina tankningar med stil. 
 
 ![Dashboard Preview](https://github.com/Farhad030619/benzinpriser/raw/main/public/preview.png)
+
+## 📸 Förhandsvisning
+
+| Inloggning | Karta & Stationer | Din Profil |
+| :---: | :---: | :---: |
+| ![Login](https://github.com/Farhad030619/benzinpriser/raw/main/public/login_preview.png) | ![Dashboard](https://github.com/Farhad030619/benzinpriser/raw/main/public/preview.png) | ![Profile](https://github.com/Farhad030619/benzinpriser/raw/main/public/profile_preview.png) |
 
 ## ✨ Höjdpunkter
 

@@ -6,16 +6,18 @@ export interface FuelLog {
 }
 
 export interface Station {
-  id: number;
+  id: string;
   name: string;
-  brand: string;
+  brand?: string;
   lat: number;
   lon: number;
   distance: number;
   price: number;
-  fuelType: string;
+  fuelType: FuelType;
   address?: string;
   change?: number;
+  isVerified?: boolean;
+  lastUpdated?: Date;
 }
 
 export type FuelType = 'bensin' | 'diesel' | 'gas' | 'bensin98';

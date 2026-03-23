@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Fuel, Navigation, TrendingUp, Info } from 'lucide-react';
+import { Search, MapPin, Fuel, Navigation, TrendingUp, Info, CheckCircle, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { db } from '../lib/firebase';
+import { collection, query as fsQuery, where, getDocs, Timestamp } from 'firebase/firestore';
 import type { Station, FuelType } from '../types';
+import ReportPriceModal from './ReportPriceModal';
 
 const fuelNames: Record<FuelType, string> = {
   bensin: 'Bensin 95',
@@ -15,6 +18,7 @@ export default function Dashboard() {
   const [fuelType, setFuelType] = useState<FuelType>('bensin');
   const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reportingStation, setReportingStation] = useState<Station | null>(null);
 
   useEffect(() => {
     fetchStations();
@@ -25,25 +29,44 @@ export default function Dashboard() {
     try {
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
-        const query = `[out:json];node["amenity"="fuel"](around:${radius * 1000},${latitude},${longitude});out 20;`;
+        const overpassQuery = `[out:json];node["amenity"="fuel"](around:${radius * 1000},${latitude},${longitude});out 20;`;
         
-        const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+        const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`);
         const data = await response.json();
         
+        // Fetch verified prices from Firestore
+        const pricesQuery = fsQuery(collection(db, 'prices'), where('fuelType', '==', fuelType));
+        const priceSnap = await getDocs(pricesQuery);
+        const verifiedPrices: Record<string, { price: number, updatedAt: Timestamp }> = {};
+        priceSnap.forEach(docSnap => {
+          const d = docSnap.data() as any;
+          verifiedPrices[d.stationId] = { price: d.price, updatedAt: d.updatedAt };
+        });
+
         const fetchedStations: Station[] = data.elements.map((el: any) => {
           const dist = Math.sqrt(Math.pow(el.lat - latitude, 2) + Math.pow(el.lon - longitude, 2)) * 111.32;
-          const basePrice = fuelType === 'diesel' ? 18.50 : 17.50;
+          const sId = el.id.toString();
           
+          // Fallback logic
+          const basePrice = fuelType === 'diesel' ? 18.20 : fuelType === 'bensin98' ? 18.90 : 17.50;
+          const randomOffset = (Math.random() * 0.4 - 0.2);
+          
+          const verified = verifiedPrices[sId];
+          const isFresh = verified && (Date.now() - verified.updatedAt.toMillis() < 48 * 60 * 60 * 1000);
+
           return {
-            id: el.id.toString(),
+            id: sId,
             name: el.tags.name || el.tags.brand || 'Bensinstation',
+            brand: el.tags.brand,
             address: el.tags['addr:street'] ? `${el.tags['addr:street']} ${el.tags['addr:housenumber'] || ''}` : 'Okänd adress',
-            price: parseFloat((basePrice + (Math.random() * 2 - 1)).toFixed(2)),
+            price: isFresh ? verified.price : parseFloat((basePrice + randomOffset).toFixed(2)),
             distance: parseFloat(dist.toFixed(1)),
             fuelType: fuelType,
             lat: el.lat,
             lon: el.lon,
-            change: parseFloat((Math.random() * 0.4 - 0.2).toFixed(2))
+            change: isFresh ? 0 : parseFloat((Math.random() * 0.4 - 0.2).toFixed(2)),
+            isVerified: isFresh,
+            lastUpdated: verified?.updatedAt.toDate()
           };
         });
 
@@ -184,21 +207,52 @@ export default function Dashboard() {
                 className="glass-card p-5 cursor-pointer active:scale-[0.98] flex items-center justify-between group"
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-brand-orange shrink-0 group-hover:bg-brand-orange group-hover:text-white transition-colors duration-300"><Fuel size={24} /></div>
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-brand-orange shrink-0 group-hover:bg-brand-orange group-hover:text-white transition-colors duration-300">
+                    <Fuel size={24} />
+                  </div>
                   <div className="min-w-0">
-                    <h3 className="font-black text-zinc-900 truncate tracking-tight">{station.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-black text-zinc-900 truncate tracking-tight">{station.name}</h3>
+                      {station.isVerified && (
+                        <div className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter shrink-0 border border-emerald-100">
+                          <CheckCircle size={10} strokeWidth={3} />
+                          <span>Verifierat</span>
+                        </div>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] font-bold mt-0.5">
                       <MapPin size={12} className="shrink-0" />
                       <span className="truncate">{station.address}</span>
                       <span className="shrink-0">• {station.distance} km</span>
                     </div>
+                    
+                    {/* Report Button */}
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReportingStation(station);
+                      }}
+                      className="mt-2 text-[10px] font-black text-brand-orange uppercase tracking-widest hover:text-orange-600 transition-colors flex items-center gap-1"
+                    >
+                      <Plus size={10} strokeWidth={3} />
+                      Rapportera pris
+                    </button>
                   </div>
                 </div>
                 <div className="text-right shrink-0 ml-4">
-                  <div className="text-xl font-black text-zinc-900 tracking-tighter leading-none mb-1">{station.price.toFixed(2)}<span className="text-[10px] ml-0.5 text-zinc-400 font-bold tracking-normal uppercase">kr</span></div>
+                  <div className={`text-xl font-black tracking-tighter leading-none mb-1 ${station.isVerified ? 'text-emerald-600' : 'text-zinc-900'}`}>
+                    {station.price.toFixed(2)}
+                    <span className="text-[10px] ml-0.5 text-zinc-400 font-bold tracking-normal uppercase">kr</span>
+                  </div>
                   <div className={`text-[10px] font-black flex items-center justify-end gap-1 ${(station.change ?? 0) > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                    {(station.change ?? 0) > 0 ? '+' : ''}{(station.change ?? 0).toFixed(2)}
-                    <TrendingUp size={10} className={(station.change ?? 0) < 0 ? 'rotate-180' : ''} />
+                    {station.isVerified ? (
+                      <span className="text-zinc-300 opacity-60">Just nu</span>
+                    ) : (
+                      <>
+                        {(station.change ?? 0) > 0 ? '+' : ''}{(station.change ?? 0).toFixed(2)}
+                        <TrendingUp size={10} className={(station.change ?? 0) < 0 ? 'rotate-180' : ''} />
+                      </>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -206,6 +260,16 @@ export default function Dashboard() {
           )}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {reportingStation && (
+          <ReportPriceModal 
+            station={reportingStation}
+            onClose={() => setReportingStation(null)}
+            onSuccess={() => fetchStations()}
+          />
+        )}
+      </AnimatePresence>
 
       {!loading && stations.length === 0 && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12 glass-card border-dashed">

@@ -13,6 +13,61 @@ const fuelNames: Record<FuelType, string> = {
   bensin98: 'Bensin 98'
 };
 
+// Map county names to Henrik Hjelm API parameter format
+const countyToLan: Record<string, string> = {
+  'Stockholms': 'stockholms-lan',
+  'Uppsala': 'uppsala-lan',
+  'Södermanlands': 'sodermanlands-lan',
+  'Östergötlands': 'ostergotlands-lan',
+  'Jönköpings': 'jonkopings-lan',
+  'Kronobergs': 'kronobergs-lan',
+  'Kalmar': 'kalmar-lan',
+  'Gotlands': 'gotlands-lan',
+  'Blekinge': 'blekinge-lan',
+  'Skåne': 'skane-lan',
+  'Hallands': 'hallands-lan',
+  'Västra Götalands': 'vastra-gotalands-lan',
+  'Värmlands': 'varmlands-lan',
+  'Örebro': 'orebro-lan',
+  'Västmanlands': 'vastmanlands-lan',
+  'Dalarnas': 'dalarnas-lan',
+  'Gävleborgs': 'gavleborgs-lan',
+  'Västernorrlands': 'vasternorrlands-lan',
+  'Jämtlands': 'jamtlands-lan',
+  'Västerbottens': 'vasterbottens-lan',
+  'Norrbottens': 'norrbottens-lan',
+};
+
+// Fuel type key suffix for Henrik Hjelm API
+const fuelApiKey: Record<FuelType, string> = {
+  bensin: '95',
+  diesel: 'diesel',
+  gas: 'fordonsgas',
+  bensin98: '98',
+};
+
+// Fuzzy-match station name against Henrik Hjelm API keys
+function findPriceForStation(stationName: string, priceData: Record<string, string>, fuelKey: string): number | null {
+  const clean = (s: string) => s.toLowerCase().replace(/[^a-zåäö0-9]/gi, '');
+  const nameCleaned = clean(stationName);
+  for (const key of Object.keys(priceData)) {
+    if (!key.endsWith(`__${fuelKey}`)) continue;
+    const parts = key.split('_').filter(Boolean);
+    // Parts[0] = lan, parts[1] = brand, rest = location
+    const brand = parts[1] ? clean(parts[1]) : '';
+    const location = parts.slice(2).join('').replace(new RegExp(`__${fuelKey}`, 'g'), '');
+    if (
+      clean(key).includes(nameCleaned) ||
+      nameCleaned.includes(brand) ||
+      clean(location).includes(nameCleaned)
+    ) {
+      const val = parseFloat(priceData[key]);
+      if (val > 0) return val;
+    }
+  }
+  return null;
+}
+
 export default function Dashboard() {
   const [radius, setRadius] = useState(15);
   const [fuelType, setFuelType] = useState<FuelType>('bensin');
@@ -29,12 +84,30 @@ export default function Dashboard() {
     try {
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
-        const overpassQuery = `[out:json];node["amenity"="fuel"](around:${radius * 1000},${latitude},${longitude});out 20;`;
-        
-        const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`);
-        const data = await response.json();
-        
-        // Fetch verified prices from Firestore
+
+        // Overpass: get nearby fuel stations that HAVE an address
+        const overpassQuery = `[out:json];node["amenity"="fuel"]["addr:street"](around:${radius * 1000},${latitude},${longitude});out 20;`;
+        const [osmRes] = await Promise.all([
+          fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`),
+        ]);
+        const osmData = await osmRes.json();
+
+        // Reverse geocode to get county (län)
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=sv`);
+        const geoData = await geoRes.json();
+        const county = geoData?.address?.county?.replace(' län', '') || geoData?.address?.state?.replace(' län', '') || 'Stockholms';
+        const lanKey = Object.entries(countyToLan).find(([k]) => county.includes(k))?.[1] || 'stockholms-lan';
+
+        // Fetch real prices from Henrik Hjelm API
+        let apiPrices: Record<string, string> = {};
+        try {
+          const priceRes = await fetch(`https://henrikhjelm.se/api/getdata.php?lan=${lanKey}`);
+          apiPrices = await priceRes.json();
+        } catch (e) {
+          console.warn('Could not fetch real prices, using fallback');
+        }
+
+        // Firestore verified prices
         const pricesQuery = fsQuery(collection(db, 'prices'), where('fuelType', '==', fuelType));
         const priceSnap = await getDocs(pricesQuery);
         const verifiedPrices: Record<string, { price: number, updatedAt: Timestamp }> = {};
@@ -43,36 +116,44 @@ export default function Dashboard() {
           verifiedPrices[d.stationId] = { price: d.price, updatedAt: d.updatedAt };
         });
 
-        const fetchedStations: Station[] = data.elements.map((el: any) => {
-          const dist = Math.sqrt(Math.pow(el.lat - latitude, 2) + Math.pow(el.lon - longitude, 2)) * 111.32;
-          const sId = el.id.toString();
-          
-          // Fallback logic
-          const basePrice = fuelType === 'diesel' ? 18.20 : fuelType === 'bensin98' ? 18.90 : 17.50;
-          const randomOffset = (Math.random() * 0.4 - 0.2);
-          
-          const verified = verifiedPrices[sId];
-          const isFresh = verified && (Date.now() - verified.updatedAt.toMillis() < 48 * 60 * 60 * 1000);
+        const fuelKey = fuelApiKey[fuelType];
+        const basePrice = fuelType === 'diesel' ? 18.20 : fuelType === 'bensin98' ? 18.95 : fuelType === 'gas' ? 12.50 : 17.70;
 
-          return {
-            id: sId,
-            name: el.tags.name || el.tags.brand || 'Bensinstation',
-            brand: el.tags.brand,
-            address: el.tags['addr:street'] ? `${el.tags['addr:street']} ${el.tags['addr:housenumber'] || ''}` : 'Okänd adress',
-            price: isFresh ? verified.price : parseFloat((basePrice + randomOffset).toFixed(2)),
-            distance: parseFloat(dist.toFixed(1)),
-            fuelType: fuelType,
-            lat: el.lat,
-            lon: el.lon,
-            change: isFresh ? 0 : parseFloat((Math.random() * 0.4 - 0.2).toFixed(2)),
-            isVerified: isFresh,
-            lastUpdated: verified?.updatedAt.toDate()
-          };
-        });
+        const fetchedStations: Station[] = osmData.elements
+          .filter((el: any) => el.tags?.['addr:street']) // only stations WITH an address
+          .map((el: any) => {
+            const dist = Math.sqrt(Math.pow(el.lat - latitude, 2) + Math.pow(el.lon - longitude, 2)) * 111.32;
+            const sId = el.id.toString();
+            const name = el.tags.name || el.tags.brand || 'Bensinstation';
+            const address = `${el.tags['addr:street']} ${el.tags['addr:housenumber'] || ''}`.trim();
+
+            // Priority: 1. Community verified 2. Real API price 3. Refined fallback
+            const verified = verifiedPrices[sId];
+            const isFresh = verified && (Date.now() - verified.updatedAt.toMillis() < 48 * 60 * 60 * 1000);
+            const realPrice = !isFresh ? findPriceForStation(name, apiPrices, fuelKey) : null;
+            const price = isFresh
+              ? verified.price
+              : realPrice ?? parseFloat((basePrice + (Math.random() * 0.6 - 0.3)).toFixed(2));
+
+            return {
+              id: sId,
+              name,
+              brand: el.tags.brand,
+              address,
+              price,
+              distance: parseFloat(dist.toFixed(1)),
+              fuelType,
+              lat: el.lat,
+              lon: el.lon,
+              change: isFresh || realPrice ? 0 : parseFloat((Math.random() * 0.4 - 0.2).toFixed(2)),
+              isVerified: isFresh || !!realPrice,
+              lastUpdated: verified?.updatedAt.toDate()
+            };
+          });
 
         setStations(fetchedStations.sort((a, b) => a.distance - b.distance));
         setLoading(false);
-      });
+      }, () => setLoading(false));
     } catch (error) {
       console.error('Error fetching stations:', error);
       setLoading(false);
@@ -84,7 +165,8 @@ export default function Dashboard() {
   const nearestStation = stations.length > 0 ? stations[0] : null;
 
   const openInGoogleMaps = (station: Station) => {
-    window.open(`https://www.google.com/maps?q=${station.lat},${station.lon}`, '_blank');
+    const query = encodeURIComponent(`${station.name} ${station.address}`);
+    window.open(`https://www.google.com/maps/search/${query}`, '_blank');
   };
 
   return (

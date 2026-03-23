@@ -4,6 +4,7 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import Profile from './components/Profile';
+import VerifyEmail from './components/VerifyEmail';
 import { MapPin, UserIcon, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -20,6 +21,13 @@ function App() {
     return unsub;
   }, []);
 
+  const refreshUser = () => {
+    if (auth.currentUser) {
+      // Force a re-render by creating a new object reference
+      setUser({ ...auth.currentUser });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-brand-bg">
@@ -35,6 +43,10 @@ function App() {
 
   if (!user) {
     return <Auth />;
+  }
+
+  if (!user.emailVerified) {
+    return <VerifyEmail user={user} onRefresh={refreshUser} />;
   }
 
   return (

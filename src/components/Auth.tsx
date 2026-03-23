@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { auth } from '../lib/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { Flame, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -10,6 +10,7 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   // Strict validation
   const validateForm = () => {
@@ -40,7 +41,9 @@ export default function Auth() {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await sendEmailVerification(userCredential.user);
+        setVerificationSent(true);
       }
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential') {
@@ -103,6 +106,17 @@ export default function Auth() {
           >
             <AlertCircle size={18} className="shrink-0" />
             <span className="font-semibold">{error}</span>
+          </motion.div>
+        )}
+
+        {verificationSent && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="bg-green-50 text-green-600 p-4 rounded-2xl mb-6 text-sm flex gap-3 items-start border border-green-100"
+          >
+            <div className="shrink-0 w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">✓</div>
+            <span className="font-bold">Verifieringsmejl har skickats till din inkorg!</span>
           </motion.div>
         )}
 

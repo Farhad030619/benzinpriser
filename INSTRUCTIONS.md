@@ -30,6 +30,15 @@ Appen är byggd för att fungera direkt på Vercel:
 4. **Inställningar**: Du behöver inte ändra något, standardinställningarna (`npm run build` och `dist/`-mappen) fungerar perfekt.
 5. **Klicka på Deploy!**
 
+### 🔐 Miljövariabler (Viktigt!)
+När du importerar projektet i Vercel, klicka på **"Environment Variables"** och lägg till följande (kopiera från din `.env`-fil):
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+
 Nu har du din egen "Bensinpris App" live på nätet!
 
 ---

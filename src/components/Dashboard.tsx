@@ -81,8 +81,8 @@ export default function Dashboard() {
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
 
-        // Fetch from Overpass – keep query small to avoid 504 timeouts
-        const overpassQuery = `[out:json][timeout:25];node["amenity"="fuel"]["addr:street"](around:25000,${latitude},${longitude});out 30;`;
+        // Fetch ALL fuel stations nearby (no addr:street filter – we filter client-side)
+        const overpassQuery = `[out:json][timeout:25];node["amenity"="fuel"](around:25000,${latitude},${longitude});out 50;`;
         const overpassMirrors = [
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
@@ -126,12 +126,14 @@ export default function Dashboard() {
         }
 
         const raw: RawStation[] = osmData.elements
-          .filter((el: any) => el.tags?.['addr:street'])
+          .filter((el: any) => el.tags?.name || el.tags?.brand) // keep any station with a name/brand
           .map((el: any) => {
             const dist = Math.sqrt(Math.pow(el.lat - latitude, 2) + Math.pow(el.lon - longitude, 2)) * 111.32;
             const sId = el.id.toString();
             const name = el.tags.name || el.tags.brand || 'Bensinstation';
-            const address = `${el.tags['addr:street']} ${el.tags['addr:housenumber'] || ''}`.trim();
+            const street = el.tags['addr:street'] || '';
+            const housenumber = el.tags['addr:housenumber'] || '';
+            const address = street ? `${street} ${housenumber}`.trim() : el.tags['addr:city'] || el.tags['addr:place'] || name;
 
             const prices: RawStation['prices'] = {};
             for (const ft of Object.keys(fuelApiKey) as FuelType[]) {

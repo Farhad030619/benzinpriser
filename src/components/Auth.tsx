@@ -37,15 +37,22 @@ export default function Auth() {
     if (!validateForm()) return;
 
     setLoading(true);
+    setError('');
+    auth.languageCode = 'sv';
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         console.log('User created, sending verification email...');
-        await sendEmailVerification(userCredential.user);
-        console.log('Verification email sent successfully!');
-        setVerificationSent(true);
+        try {
+          await sendEmailVerification(userCredential.user);
+          console.log('Verification email sent successfully!');
+          setVerificationSent(true);
+        } catch (verifErr: any) {
+          console.error('Error sending verification email:', verifErr);
+          setError('Kontot skapades, men kunde inte skicka verifieringsmejlet: ' + verifErr.message);
+        }
       }
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential') {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { auth } from '../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { Flame, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -55,71 +56,107 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-6">
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-brand-orange text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-soft">
-          <Flame size={32} />
-        </div>
-        <h1 className="text-3xl font-bold text-zinc-900 mb-2">Bensinpris</h1>
-        <p className="text-zinc-500">Hitta bäst pris & logga tankningar</p>
-      </div>
+    <div className="min-h-screen flex flex-col justify-center items-center px-6 relative overflow-hidden bg-brand-bg">
+      {/* Decorative background blobs */}
+      <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-brand-orange/10 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 bg-brand-orange/5 rounded-full blur-3xl animate-pulse delay-700" />
 
-      <div className="glass-card w-full p-6">
-        <h2 className="text-xl font-bold mb-6 text-zinc-800">
-          {isLogin ? 'Logga in' : 'Skapa konto'}
-        </h2>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center mb-10 z-10"
+      >
+        <motion.div 
+          animate={{ y: [0, -10, 0] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          className="w-20 h-20 bg-brand-orange text-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-brand rotate-12 hover:rotate-0 transition-transform duration-500"
+        >
+          <Flame size={40} />
+        </motion.div>
+        <h1 className="text-4xl font-black text-zinc-900 mb-2 tracking-tight">Bensinpris</h1>
+        <p className="text-zinc-500 font-medium">Hitta bäst pris & logga tankningar</p>
+      </motion.div>
+
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.1 }}
+        className="glass-card w-full max-w-sm p-8 z-10"
+      >
+        <AnimatePresence mode="wait">
+          <motion.h2 
+            key={isLogin ? 'login' : 'register'}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            className="text-2xl font-black mb-8 text-zinc-800"
+          >
+            {isLogin ? 'Välkommen åter' : 'Skapa nytt konto'}
+          </motion.h2>
+        </AnimatePresence>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm flex gap-2 items-start">
-            <AlertCircle size={16} className="mt-0.5 shrink-0" />
-            <span>{error}</span>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="bg-red-50 text-red-600 p-4 rounded-2xl mb-6 text-sm flex gap-3 items-start border border-red-100"
+          >
+            <AlertCircle size={18} className="shrink-0" />
+            <span className="font-semibold">{error}</span>
+          </motion.div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-600 mb-1">E-post</label>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">E-post</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-orange/50 transition-all"
+              className="input-field"
               placeholder="din@email.se"
               required
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-600 mb-1">Lösenord</label>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">Lösenord</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-orange/50 transition-all"
+              className="input-field"
               placeholder="••••••••"
               required
             />
           </div>
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={loading}
-            className="w-full bg-brand-orange text-white font-bold py-3.5 rounded-xl shadow-soft hover:bg-[#E06741] transition-colors disabled:opacity-70 mt-4"
+            className="w-full btn-primary mt-4"
           >
-            {loading ? 'Väntar...' : isLogin ? 'Logga in' : 'Registrera'}
-          </button>
+            {loading ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Väntar...</span>
+              </div>
+            ) : isLogin ? 'Logga in' : 'Registrera dig'}
+          </motion.button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-8 text-center">
           <button
             onClick={() => {
               setIsLogin(!isLogin);
               setError('');
             }}
-            className="text-sm text-zinc-500 hover:text-brand-orange font-medium transition-colors"
+            className="text-sm text-zinc-400 hover:text-brand-orange font-bold uppercase tracking-wider transition-colors"
           >
-            {isLogin ? 'Har du inget konto? Registrera' : 'Har du redan ett konto? Logga in'}
+            {isLogin ? 'Skapa konto istället' : 'Har du redan konto? Logga in'}
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

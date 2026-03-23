@@ -81,11 +81,20 @@ export default function Dashboard() {
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
 
-        // Fetch from Overpass with large radius to cache locally (50km max)
-        const overpassQuery = `[out:json];node["amenity"="fuel"]["addr:street"](around:50000,${latitude},${longitude});out 50;`;
-        const osmRes = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`);
-        if (!osmRes.ok) { console.warn('Overpass error:', osmRes.status); setLoading(false); return; }
-        const osmData = await osmRes.json();
+        // Fetch from Overpass – keep query small to avoid 504 timeouts
+        const overpassQuery = `[out:json][timeout:25];node["amenity"="fuel"]["addr:street"](around:25000,${latitude},${longitude});out 30;`;
+        const overpassMirrors = [
+          'https://overpass-api.de/api/interpreter',
+          'https://overpass.kumi.systems/api/interpreter',
+        ];
+        let osmData: any = { elements: [] };
+        for (const mirror of overpassMirrors) {
+          try {
+            const osmRes = await fetch(`${mirror}?data=${encodeURIComponent(overpassQuery)}`);
+            if (osmRes.ok) { osmData = await osmRes.json(); break; }
+            console.warn('Overpass mirror error:', mirror, osmRes.status);
+          } catch { /* try next mirror */ }
+        }
 
         // Reverse geocode for county
         const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=sv`);

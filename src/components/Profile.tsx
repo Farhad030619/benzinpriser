@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../lib/firebase';
-import { collection, addDoc, query, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import type { FuelLog } from '../types';
 import { signOut, type User } from 'firebase/auth';
 import { LogOut, Trash2, Fuel, Plus } from 'lucide-react';
@@ -129,7 +129,7 @@ export default function Profile({ user }: { user: User }) {
                 Inga tankningar än.
               </motion.p>
             ) : (
-              logs.map((log, index) => (
+              logs.map((log) => (
                 <motion.div 
                   layout key={log.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
                   className="glass-card p-5 flex justify-between items-center group"

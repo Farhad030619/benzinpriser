@@ -86,6 +86,8 @@ export default function Dashboard() {
         const overpassMirrors = [
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
+          'https://overpass.openstreetmap.fr/api/interpreter',
+          'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
         ];
         let osmData: any = { elements: [] };
         for (const mirror of overpassMirrors) {
@@ -102,16 +104,13 @@ export default function Dashboard() {
         const county = geoData?.address?.county?.replace(' län', '') || geoData?.address?.state?.replace(' län', '') || 'Stockholms';
         const lanKey = Object.entries(countyToLan).find(([k]) => county.includes(k))?.[1] || 'stockholms-lan';
 
-        // Fetch price data from Henrik Hjelm API
+        // Fetch real prices via our own Vercel API proxy (no CORS issues)
         let apiPrices: Record<string, string> = {};
-        for (const url of [
-          `https://corsproxy.io/?url=${encodeURIComponent(`https://henrikhjelm.se/api/getdata.php?lan=${lanKey}`)}`,
-          `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://henrikhjelm.se/api/getdata.php?lan=${lanKey}`)}`,
-        ]) {
-          try {
-            const r = await fetch(url);
-            if (r.ok) { const t = await r.text(); if (t.startsWith('{')) { apiPrices = JSON.parse(t); break; } }
-          } catch { /* try next */ }
+        try {
+          const priceRes = await fetch(`/api/prices?lan=${lanKey}`);
+          if (priceRes.ok) apiPrices = await priceRes.json();
+        } catch (e) {
+          console.warn('Could not fetch real prices:', e);
         }
 
         // Fetch ALL Firestore community prices

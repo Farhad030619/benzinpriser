@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../lib/firebase';
 import { collection, addDoc, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import type { FuelLog } from '../types';
 import { signOut, type User } from 'firebase/auth';
-import { LogOut, Trash2, Fuel, Plus } from 'lucide-react';
+import { LogOut, Trash2, Fuel, Plus, User as UserIcon, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Profile({ user }: { user: User }) {
@@ -11,6 +11,20 @@ export default function Profile({ user }: { user: User }) {
   const [sek, setSek] = useState('');
   const [lit, setLit] = useState('');
   const [loading, setLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   useEffect(() => {
     const q = collection(db, 'users', user.uid, 'logs');
@@ -51,10 +65,17 @@ export default function Profile({ user }: { user: User }) {
   };
 
   const handleDelete = async (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return;
     try {
-      await deleteDoc(doc(db, 'users', user.uid, 'logs', id));
+      await deleteDoc(doc(db, 'users', user.uid, 'logs', confirmDeleteId));
     } catch (e) {
       alert('Kunde inte ta bort.');
+    } finally {
+      setConfirmDeleteId(null);
     }
   };
 
@@ -63,15 +84,44 @@ export default function Profile({ user }: { user: User }) {
 
   return (
     <div className="pt-2">
-      <header className="flex justify-between items-center mb-8">
+      <header className="flex justify-between items-center mb-8 relative">
         <motion.h1 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="text-3xl font-black text-zinc-900 tracking-tight">Din Profil</motion.h1>
-        <motion.button 
-          whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.9 }}
-          onClick={() => signOut(auth)}
-          className="w-10 h-10 bg-white rounded-2xl shadow-soft flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
-        >
-          <LogOut size={20} />
-        </motion.button>
+        
+        {/* User menu button */}
+        <div ref={menuRef} className="relative">
+          <motion.button 
+            whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="w-10 h-10 bg-white rounded-2xl shadow-soft flex items-center justify-center text-zinc-500 hover:text-brand-orange transition-colors"
+          >
+            <UserIcon size={20} />
+          </motion.button>
+
+          <AnimatePresence>
+            {menuOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: -8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: -8 }}
+                className="absolute right-0 top-12 w-56 glass-card p-3 z-50 shadow-xl"
+              >
+                <div className="px-3 py-2 mb-2">
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Inloggad som</p>
+                  <p className="text-sm font-bold text-zinc-800 truncate">{user.email}</p>
+                </div>
+                <div className="border-t border-zinc-100 pt-2">
+                  <button
+                    onClick={() => signOut(auth)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut size={16} />
+                    Logga ut
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </header>
 
       {/* Stats Card */}
@@ -141,12 +191,12 @@ export default function Profile({ user }: { user: User }) {
                       <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">{log.lit} liter</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <span className="font-black text-xl text-zinc-900 tracking-tighter">{log.sek}<span className="text-[10px] ml-0.5 text-zinc-400 uppercase tracking-normal">kr</span></span>
                     <motion.button 
                       whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                       onClick={() => handleDelete(log.id)}
-                      className="w-10 h-10 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="w-10 h-10 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center hover:bg-red-100 transition-colors"
                     >
                       <Trash2 size={16} />
                     </motion.button>
@@ -157,6 +207,43 @@ export default function Profile({ user }: { user: User }) {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <AnimatePresence>
+        {confirmDeleteId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="glass-card p-6 max-w-sm w-full text-center"
+            >
+              <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
+              <h3 className="text-xl font-black text-zinc-900 mb-2">Bekräfta borttagning</h3>
+              <p className="text-zinc-600 mb-6">Är du säker på att du vill ta bort denna tankning? Denna åtgärd kan inte ångras.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="flex-1 btn-secondary"
+                >
+                  Avbryt
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 btn-danger"
+                >
+                  Ta bort
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

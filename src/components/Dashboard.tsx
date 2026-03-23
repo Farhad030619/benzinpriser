@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Fuel, Navigation, TrendingUp, Info, CheckCircle, Plus } from 'lucide-react';
+import { Search, MapPin, Fuel, Navigation, TrendingUp, Info, CheckCircle, Plus, ArrowUpDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../lib/firebase';
 import { collection, query as fsQuery, where, getDocs, Timestamp } from 'firebase/firestore';
@@ -13,54 +13,35 @@ const fuelNames: Record<FuelType, string> = {
   bensin98: 'Bensin 98'
 };
 
-// Map county names to Henrik Hjelm API parameter format
 const countyToLan: Record<string, string> = {
-  'Stockholms': 'stockholms-lan',
-  'Uppsala': 'uppsala-lan',
-  'Södermanlands': 'sodermanlands-lan',
-  'Östergötlands': 'ostergotlands-lan',
-  'Jönköpings': 'jonkopings-lan',
-  'Kronobergs': 'kronobergs-lan',
-  'Kalmar': 'kalmar-lan',
-  'Gotlands': 'gotlands-lan',
-  'Blekinge': 'blekinge-lan',
-  'Skåne': 'skane-lan',
-  'Hallands': 'hallands-lan',
-  'Västra Götalands': 'vastra-gotalands-lan',
-  'Värmlands': 'varmlands-lan',
-  'Örebro': 'orebro-lan',
-  'Västmanlands': 'vastmanlands-lan',
-  'Dalarnas': 'dalarnas-lan',
-  'Gävleborgs': 'gavleborgs-lan',
-  'Västernorrlands': 'vasternorrlands-lan',
-  'Jämtlands': 'jamtlands-lan',
-  'Västerbottens': 'vasterbottens-lan',
-  'Norrbottens': 'norrbottens-lan',
+  'Stockholms': 'stockholms-lan', 'Uppsala': 'uppsala-lan',
+  'Södermanlands': 'sodermanlands-lan', 'Östergötlands': 'ostergotlands-lan',
+  'Jönköpings': 'jonkopings-lan', 'Kronobergs': 'kronobergs-lan',
+  'Kalmar': 'kalmar-lan', 'Gotlands': 'gotlands-lan', 'Blekinge': 'blekinge-lan',
+  'Skåne': 'skane-lan', 'Hallands': 'hallands-lan',
+  'Västra Götalands': 'vastra-gotalands-lan', 'Värmlands': 'varmlands-lan',
+  'Örebro': 'orebro-lan', 'Västmanlands': 'vastmanlands-lan',
+  'Dalarnas': 'dalarnas-lan', 'Gävleborgs': 'gavleborgs-lan',
+  'Västernorrlands': 'vasternorrlands-lan', 'Jämtlands': 'jamtlands-lan',
+  'Västerbottens': 'vasterbottens-lan', 'Norrbottens': 'norrbottens-lan',
 };
 
-// Fuel type key suffix for Henrik Hjelm API
 const fuelApiKey: Record<FuelType, string> = {
-  bensin: '95',
-  diesel: 'diesel',
-  gas: 'fordonsgas',
-  bensin98: '98',
+  bensin: '95', diesel: 'diesel', gas: 'fordonsgas', bensin98: '98',
 };
 
-// Fuzzy-match station name against Henrik Hjelm API keys
+const basePrices: Record<FuelType, number> = {
+  bensin: 17.70, diesel: 18.20, gas: 12.50, bensin98: 18.95,
+};
+
 function findPriceForStation(stationName: string, priceData: Record<string, string>, fuelKey: string): number | null {
   const clean = (s: string) => s.toLowerCase().replace(/[^a-zåäö0-9]/gi, '');
   const nameCleaned = clean(stationName);
   for (const key of Object.keys(priceData)) {
     if (!key.endsWith(`__${fuelKey}`)) continue;
     const parts = key.split('_').filter(Boolean);
-    // Parts[0] = lan, parts[1] = brand, rest = location
     const brand = parts[1] ? clean(parts[1]) : '';
-    const location = parts.slice(2).join('').replace(new RegExp(`__${fuelKey}`, 'g'), '');
-    if (
-      clean(key).includes(nameCleaned) ||
-      nameCleaned.includes(brand) ||
-      clean(location).includes(nameCleaned)
-    ) {
+    if (clean(key).includes(nameCleaned) || nameCleaned.includes(brand)) {
       const val = parseFloat(priceData[key]);
       if (val > 0) return val;
     }
@@ -68,18 +49,31 @@ function findPriceForStation(stationName: string, priceData: Record<string, stri
   return null;
 }
 
+// A raw station from Overpass before fuel-type pricing is applied
+interface RawStation {
+  id: string;
+  name: string;
+  brand?: string;
+  address: string;
+  lat: number;
+  lon: number;
+  distance: number;
+  // prices per fuel type
+  prices: Partial<Record<FuelType, { price: number; isVerified: boolean; change: number; lastUpdated?: Date }>>;
+}
+
 export default function Dashboard() {
   const [radius, setRadius] = useState(15);
   const [fuelType, setFuelType] = useState<FuelType>('bensin');
-  const [stations, setStations] = useState<Station[]>([]);
+  const [sortBy, setSortBy] = useState<'distance' | 'price'>('distance');
+  const [allStations, setAllStations] = useState<RawStation[]>([]);
   const [loading, setLoading] = useState(true);
   const [reportingStation, setReportingStation] = useState<Station | null>(null);
 
-  // Debounce: only fetch after 600ms of no slider movement
+  // Fetch ONCE on mount
   useEffect(() => {
-    const timer = setTimeout(() => fetchStations(), 600);
-    return () => clearTimeout(timer);
-  }, [radius, fuelType]);
+    fetchStations();
+  }, []);
 
   const fetchStations = async () => {
     setLoading(true);
@@ -87,101 +81,100 @@ export default function Dashboard() {
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
 
-        // Overpass: get nearby fuel stations that HAVE an address
-        const overpassQuery = `[out:json];node["amenity"="fuel"]["addr:street"](around:${radius * 1000},${latitude},${longitude});out 20;`;
+        // Fetch from Overpass with large radius to cache locally (50km max)
+        const overpassQuery = `[out:json];node["amenity"="fuel"]["addr:street"](around:50000,${latitude},${longitude});out 50;`;
         const osmRes = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`);
-        if (!osmRes.ok) {
-          console.warn('Overpass API error:', osmRes.status);
-          setLoading(false);
-          return;
-        }
+        if (!osmRes.ok) { console.warn('Overpass error:', osmRes.status); setLoading(false); return; }
         const osmData = await osmRes.json();
 
-        // Reverse geocode to get county (län)
+        // Reverse geocode for county
         const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=sv`);
         const geoData = await geoRes.json();
         const county = geoData?.address?.county?.replace(' län', '') || geoData?.address?.state?.replace(' län', '') || 'Stockholms';
         const lanKey = Object.entries(countyToLan).find(([k]) => county.includes(k))?.[1] || 'stockholms-lan';
 
-        // Fetch real prices from Henrik Hjelm API (try multiple CORS proxies)
+        // Fetch price data from Henrik Hjelm API
         let apiPrices: Record<string, string> = {};
-        const proxies = [
+        for (const url of [
           `https://corsproxy.io/?url=${encodeURIComponent(`https://henrikhjelm.se/api/getdata.php?lan=${lanKey}`)}`,
           `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://henrikhjelm.se/api/getdata.php?lan=${lanKey}`)}`,
-        ];
-        for (const url of proxies) {
+        ]) {
           try {
-            const priceRes = await fetch(url);
-            if (priceRes.ok) {
-              const text = await priceRes.text();
-              if (text.startsWith('{')) {
-                apiPrices = JSON.parse(text);
-                break;
-              }
-            }
-          } catch { /* try next proxy */ }
+            const r = await fetch(url);
+            if (r.ok) { const t = await r.text(); if (t.startsWith('{')) { apiPrices = JSON.parse(t); break; } }
+          } catch { /* try next */ }
         }
 
-        // Firestore verified prices
-        const pricesQuery = fsQuery(collection(db, 'prices'), where('fuelType', '==', fuelType));
-        const priceSnap = await getDocs(pricesQuery);
-        const verifiedPrices: Record<string, { price: number, updatedAt: Timestamp }> = {};
-        priceSnap.forEach(docSnap => {
-          const d = docSnap.data() as any;
-          verifiedPrices[d.stationId] = { price: d.price, updatedAt: d.updatedAt };
-        });
+        // Fetch ALL Firestore community prices
+        const allVerified: Record<string, Record<string, { price: number; updatedAt: Timestamp }>> = {};
+        for (const ft of Object.keys(fuelApiKey) as FuelType[]) {
+          const snap = await getDocs(fsQuery(collection(db, 'prices'), where('fuelType', '==', ft)));
+          snap.forEach(docSnap => {
+            const d = docSnap.data() as any;
+            if (!allVerified[d.stationId]) allVerified[d.stationId] = {};
+            allVerified[d.stationId][ft] = { price: d.price, updatedAt: d.updatedAt };
+          });
+        }
 
-        const fuelKey = fuelApiKey[fuelType];
-        const basePrice = fuelType === 'diesel' ? 18.20 : fuelType === 'bensin98' ? 18.95 : fuelType === 'gas' ? 12.50 : 17.70;
-
-        const fetchedStations: Station[] = osmData.elements
-          .filter((el: any) => el.tags?.['addr:street']) // only stations WITH an address
+        const raw: RawStation[] = osmData.elements
+          .filter((el: any) => el.tags?.['addr:street'])
           .map((el: any) => {
             const dist = Math.sqrt(Math.pow(el.lat - latitude, 2) + Math.pow(el.lon - longitude, 2)) * 111.32;
             const sId = el.id.toString();
             const name = el.tags.name || el.tags.brand || 'Bensinstation';
             const address = `${el.tags['addr:street']} ${el.tags['addr:housenumber'] || ''}`.trim();
 
-            // Priority: 1. Community verified 2. Real API price 3. Refined fallback
-            const verified = verifiedPrices[sId];
-            const isFresh = verified && (Date.now() - verified.updatedAt.toMillis() < 48 * 60 * 60 * 1000);
-            const realPrice = !isFresh ? findPriceForStation(name, apiPrices, fuelKey) : null;
-            const price = isFresh
-              ? verified.price
-              : realPrice ?? parseFloat((basePrice + (Math.random() * 0.6 - 0.3)).toFixed(2));
+            const prices: RawStation['prices'] = {};
+            for (const ft of Object.keys(fuelApiKey) as FuelType[]) {
+              const communityEntry = allVerified[sId]?.[ft];
+              const isFresh = communityEntry && (Date.now() - communityEntry.updatedAt.toMillis() < 48 * 60 * 60 * 1000);
+              const realPrice = !isFresh ? findPriceForStation(name, apiPrices, fuelApiKey[ft]) : null;
+              const price = isFresh
+                ? communityEntry.price
+                : realPrice ?? parseFloat((basePrices[ft] + (Math.random() * 0.6 - 0.3)).toFixed(2));
+              prices[ft] = {
+                price,
+                isVerified: isFresh || !!realPrice,
+                change: isFresh || realPrice ? 0 : parseFloat((Math.random() * 0.4 - 0.2).toFixed(2)),
+                lastUpdated: communityEntry?.updatedAt?.toDate(),
+              };
+            }
 
-            return {
-              id: sId,
-              name,
-              brand: el.tags.brand,
-              address,
-              price,
-              distance: parseFloat(dist.toFixed(1)),
-              fuelType,
-              lat: el.lat,
-              lon: el.lon,
-              change: isFresh || realPrice ? 0 : parseFloat((Math.random() * 0.4 - 0.2).toFixed(2)),
-              isVerified: isFresh || !!realPrice,
-              lastUpdated: verified?.updatedAt.toDate()
-            };
+            return { id: sId, name, brand: el.tags.brand, address, lat: el.lat, lon: el.lon, distance: parseFloat(dist.toFixed(1)), prices };
           });
 
-        setStations(fetchedStations.sort((a, b) => a.distance - b.distance));
+        setAllStations(raw.sort((a, b) => a.distance - b.distance));
         setLoading(false);
       }, () => setLoading(false));
-    } catch (error) {
-      console.error('Error fetching stations:', error);
+    } catch (err) {
+      console.error(err);
       setLoading(false);
     }
   };
 
-  const sortedByPrice = [...stations].sort((a, b) => a.price - b.price);
-  const bestStation = sortedByPrice.length > 0 ? sortedByPrice[0] : null;
-  const nearestStation = stations.length > 0 ? stations[0] : null;
+  // Derive visible stations: filter by radius, then map to Station shape for current fuelType
+  const visibleStations: Station[] = allStations
+    .filter(s => s.distance <= radius)
+    .map(s => {
+      const pd = s.prices[fuelType]!;
+      return {
+        id: s.id, name: s.name, brand: s.brand, address: s.address,
+        lat: s.lat, lon: s.lon, distance: s.distance,
+        fuelType,
+        price: pd.price, isVerified: pd.isVerified, change: pd.change, lastUpdated: pd.lastUpdated,
+      };
+    });
+
+  // Sort
+  const sortedStations = [...visibleStations].sort((a, b) =>
+    sortBy === 'price' ? a.price - b.price : a.distance - b.distance
+  );
+
+  const bestStation = [...visibleStations].sort((a, b) => a.price - b.price)[0] ?? null;
+  const nearestStation = [...visibleStations].sort((a, b) => a.distance - b.distance)[0] ?? null;
 
   const openInGoogleMaps = (station: Station) => {
-    const query = encodeURIComponent(`${station.name} ${station.address}`);
-    window.open(`https://www.google.com/maps/search/${query}`, '_blank');
+    window.open(`https://www.google.com/maps/search/${encodeURIComponent(`${station.name} ${station.address}`)}`, '_blank');
   };
 
   return (
@@ -198,7 +191,7 @@ export default function Dashboard() {
 
       {/* Hero Stats */}
       <div className="grid grid-cols-2 gap-4 mb-8">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => bestStation && openInGoogleMaps(bestStation)}
@@ -206,7 +199,8 @@ export default function Dashboard() {
         >
           <div className="relative">
             <Navigation className="w-6 h-6 absolute top-0 right-0 opacity-40 group-hover:opacity-100 transition-opacity" />
-            <h3 className="text-xs font-black uppercase tracking-widest opacity-80 mb-2">Billigast</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest opacity-80 mb-1">Billigast</h3>
+            <p className="text-[10px] opacity-60 mb-2">{fuelNames[fuelType]}</p>
             <div className="text-4xl font-black tracking-tighter">
               {loading ? '--.--' : bestStation ? bestStation.price.toFixed(2) : '--.--'}
               <span className="text-lg ml-0.5 opacity-80">kr</span>
@@ -218,7 +212,7 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
           onClick={() => nearestStation && openInGoogleMaps(nearestStation)}
           className="glass-card p-5 cursor-pointer hover:bg-white/90 group"
@@ -234,7 +228,7 @@ export default function Dashboard() {
           <p className="text-[10px] text-zinc-400 font-bold mt-1 truncate">{nearestStation?.name || '...'}</p>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
           className="glass-card p-5"
         >
@@ -249,7 +243,7 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Filters - fuel type + radius slider */}
+      {/* Filters */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card p-6 mb-8">
         <div className="flex flex-col gap-6">
           <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
@@ -282,9 +276,20 @@ export default function Dashboard() {
       <div className="space-y-4">
         <div className="flex items-center justify-between px-2 mb-2">
           <h2 className="text-lg font-black text-zinc-900 tracking-tight">Stationer</h2>
-          <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{stations.length} hittade</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSortBy(s => s === 'distance' ? 'price' : 'distance')}
+              className="flex items-center gap-1.5 text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl shadow-sm hover:shadow-md transition-all"
+            >
+              <ArrowUpDown size={10} />
+              {sortBy === 'distance' ? 'Avstånd' : 'Pris'}
+            </button>
+            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+              {loading ? '...' : `${sortedStations.length} hittade`}
+            </span>
+          </div>
         </div>
-        
+
         <AnimatePresence mode="popLayout">
           {loading ? (
             <div className="space-y-4">
@@ -296,10 +301,10 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            stations.map((station, index) => (
+            sortedStations.map((station, index) => (
               <motion.div
                 layout key={station.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: index * 0.04 }}
                 onClick={() => openInGoogleMaps(station)}
                 className="glass-card p-5 cursor-pointer active:scale-[0.98] flex items-center justify-between group"
               >
@@ -322,13 +327,8 @@ export default function Dashboard() {
                       <span className="truncate">{station.address}</span>
                       <span className="shrink-0">• {station.distance} km</span>
                     </div>
-                    
-                    {/* Report Button */}
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setReportingStation(station);
-                      }}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setReportingStation(station); }}
                       className="mt-2 text-[10px] font-black text-brand-orange uppercase tracking-widest hover:text-orange-600 transition-colors flex items-center gap-1"
                     >
                       <Plus size={10} strokeWidth={3} />
@@ -360,7 +360,7 @@ export default function Dashboard() {
 
       <AnimatePresence>
         {reportingStation && (
-          <ReportPriceModal 
+          <ReportPriceModal
             station={reportingStation}
             onClose={() => setReportingStation(null)}
             onSuccess={() => fetchStations()}
@@ -368,8 +368,8 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {!loading && stations.length === 0 && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12 glass-card border-dashed">
+      {!loading && sortedStations.length === 0 && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12 glass-card border-dashed mt-4">
           <Info className="w-8 h-8 text-zinc-300 mx-auto mb-3" />
           <p className="text-zinc-500 font-bold">Inga stationer inom {radius} km.</p>
         </motion.div>

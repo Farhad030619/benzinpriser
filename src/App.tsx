@@ -21,10 +21,15 @@ function App() {
     return unsub;
   }, []);
 
-  const refreshUser = () => {
+  const refreshUser = async () => {
     if (auth.currentUser) {
-      // Force a re-render by creating a new object reference
-      setUser({ ...auth.currentUser });
+      await auth.currentUser.reload();
+      setUser(auth.currentUser);
+      // Force re-render by toggling a dummy state if needed, 
+      // but usually React 18+ might handle this if we are lucky, 
+      // or we can just use a forced refresh.
+      setLoading(true);
+      setTimeout(() => setLoading(false), 0);
     }
   };
 

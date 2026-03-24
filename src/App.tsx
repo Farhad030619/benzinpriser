@@ -25,8 +25,6 @@ function App() {
   const refreshUser = async () => {
     if (auth.currentUser) {
       await auth.currentUser.reload();
-      setUser(auth.currentUser);
-      setRefreshKey(prev => prev + 1);
     }
   };
 

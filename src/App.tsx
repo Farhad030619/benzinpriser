@@ -12,6 +12,7 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'home' | 'profile'>('home');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -25,11 +26,7 @@ function App() {
     if (auth.currentUser) {
       await auth.currentUser.reload();
       setUser(auth.currentUser);
-      // Force re-render by toggling a dummy state if needed, 
-      // but usually React 18+ might handle this if we are lucky, 
-      // or we can just use a forced refresh.
-      setLoading(true);
-      setTimeout(() => setLoading(false), 0);
+      setRefreshKey(prev => prev + 1);
     }
   };
 
@@ -51,7 +48,7 @@ function App() {
   }
 
   if (!user.emailVerified) {
-    return <VerifyEmail user={user} onRefresh={refreshUser} />;
+    return <VerifyEmail key={refreshKey} user={user} onRefresh={refreshUser} />;
   }
 
   return (

@@ -70,62 +70,28 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [reportingStation, setReportingStation] = useState<Station | null>(null);
 
-  // Fetch ONCE on mount
   useEffect(() => {
     fetchStations();
   }, []);
 
   const fetchStations = async () => {
     setLoading(true);
-    try {
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        const { latitude, longitude } = pos.coords;
-
-        // Fetch ALL fuel stations nearby (no addr:street filter – we filter client-side)
-        const overpassQuery = `[out:json][timeout:30];node["amenity"="fuel"](around:${radius * 1000},${latitude},${longitude});out 50;`;
-        const overpassMirrors = [
-          'https://overpass-api.de/api/interpreter',
-          'https://overpass.kumi.systems/api/interpreter',
-          'https://overpass.openstreetmap.fr/api/interpreter',
-          'https://lz4.overpass-api.de/api/interpreter',
-          'https://z.overpass-api.de/api/interpreter',
-        ];
-        
-        let osmData: any = { elements: [] };
-        let success = false;
-
-        for (const mirror of overpassMirrors) {
-          try {
-            console.log(`Trying Overpass mirror: ${mirror}`);
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), 15000); // 15s per mirror
-
-            const osmRes = await fetch(`${mirror}?data=${encodeURIComponent(overpassQuery)}`, {
-              signal: controller.signal
-            });
-            clearTimeout(id);
-
-            if (osmRes.ok) { 
-              osmData = await osmRes.json(); 
-              success = true;
-              break; 
-            }
-          } catch (e) {
-            console.warn(`Mirror ${mirror} failed:`, e);
-          }
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude, longitude } = pos.coords;
+      try {
+        // 1. Get location context (county) for prices
+        let geoData: any = null;
+        try {
+          const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          if (geoRes.ok) geoData = await geoRes.json();
+        } catch (e) {
+          console.warn('Reverse geocode failed:', e);
         }
 
-        if (!success) {
-          throw new Error('Alla Overpass-servrar är upptagna. Prova igen om en stund.');
-        }
-
-        // Reverse geocode for county
-        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=sv`);
-        const geoData = await geoRes.json();
         const county = geoData?.address?.county?.replace(' län', '') || geoData?.address?.state?.replace(' län', '') || 'Stockholms';
         const lanKey = Object.entries(countyToLan).find(([k]) => county.includes(k))?.[1] || 'stockholms-lan';
 
-        // Fetch real prices via our own Vercel API proxy (no CORS issues)
+        // 2. Fetch real prices via our proxy
         let apiPrices: Record<string, string> = {};
         try {
           const priceRes = await fetch(`/api/prices?lan=${lanKey}`);
@@ -134,19 +100,51 @@ export default function Dashboard() {
           console.warn('Could not fetch real prices:', e);
         }
 
-        // Fetch ALL Firestore community prices
+        // 3. Fetch community prices
         const allVerified: Record<string, Record<string, { price: number; updatedAt: Timestamp }>> = {};
-        for (const ft of Object.keys(fuelApiKey) as FuelType[]) {
-          const snap = await getDocs(fsQuery(collection(db, 'prices'), where('fuelType', '==', ft)));
-          snap.forEach(docSnap => {
-            const d = docSnap.data() as any;
-            if (!allVerified[d.stationId]) allVerified[d.stationId] = {};
-            allVerified[d.stationId][ft] = { price: d.price, updatedAt: d.updatedAt };
-          });
+        try {
+          for (const ft of Object.keys(fuelApiKey) as FuelType[]) {
+            const snap = await getDocs(fsQuery(collection(db, 'prices'), where('fuelType', '==', ft)));
+            snap.forEach(docSnap => {
+              const d = docSnap.data() as any;
+              if (!allVerified[d.stationId]) allVerified[d.stationId] = {};
+              allVerified[d.stationId][ft] = { price: d.price, updatedAt: d.updatedAt };
+            });
+          }
+        } catch (e) {
+          console.warn('Community prices fetch failed:', e);
         }
 
+        // 4. Fetch OSM stations with mirror rotation
+        const overpassQuery = `[out:json][timeout:30];node["amenity"="fuel"](around:20000,${latitude},${longitude});out 50;`;
+        const mirrors = [
+          'https://overpass-api.de/api/interpreter',
+          'https://overpass.kumi.systems/api/interpreter',
+          'https://overpass.openstreetmap.fr/api/interpreter'
+        ];
+
+        let osmData: any = null;
+        for (const mirror of mirrors) {
+          try {
+            console.log(`Trying Overpass mirror: ${mirror}`);
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), 10000);
+            const res = await fetch(`${mirror}?data=${encodeURIComponent(overpassQuery)}`, { signal: controller.signal });
+            clearTimeout(id);
+            if (res.ok) {
+              osmData = await res.json();
+              break;
+            }
+          } catch (e) {
+            console.error(`Mirror ${mirror} failed:`, e);
+          }
+        }
+
+        if (!osmData) throw new Error('Alla Overpass-servrar är upptagna just nu. Försök igen om en stund.');
+
+        // 5. Process everything into types
         const raw: RawStation[] = osmData.elements
-          .filter((el: any) => el.tags?.name || el.tags?.brand) // keep any station with a name/brand
+          .filter((el: any) => el.tags?.name || el.tags?.brand)
           .map((el: any) => {
             const dist = Math.sqrt(Math.pow(el.lat - latitude, 2) + Math.pow(el.lon - longitude, 2)) * 111.32;
             const sId = el.id.toString();
@@ -160,9 +158,11 @@ export default function Dashboard() {
               const communityEntry = allVerified[sId]?.[ft];
               const isFresh = communityEntry && (Date.now() - communityEntry.updatedAt.toMillis() < 48 * 60 * 60 * 1000);
               const realPrice = !isFresh ? findPriceForStation(name, apiPrices, fuelApiKey[ft]) : null;
+              
               const price = isFresh
                 ? communityEntry.price
                 : realPrice ?? parseFloat((basePrices[ft] + (Math.random() * 0.6 - 0.3)).toFixed(2));
+
               prices[ft] = {
                 price,
                 isVerified: isFresh || !!realPrice,
@@ -174,18 +174,19 @@ export default function Dashboard() {
             return { id: sId, name, brand: el.tags.brand, address, lat: el.lat, lon: el.lon, distance: parseFloat(dist.toFixed(1)), prices };
           });
 
-        const stations = raw.sort((a, b) => a.distance - b.distance);
-        setAllStations(stations);
+        setAllStations(raw.sort((a, b) => a.distance - b.distance));
         setLoading(false);
-      }, (err) => {
-        console.error('Geolocation error:', err);
+      } catch (error: any) {
+        console.error('Error fetching stations:', error);
+        alert(error.message || 'Kunde inte hämta stationer.');
         setLoading(false);
-      }, { enableHighAccuracy: true, timeout: 5000 });
-    } catch (error: any) {
-      console.error('Error fetching stations:', error);
-      alert(error.message || 'Kunde inte hämta stationer.');
+      }
+    }, (err) => {
+      console.error('Geolocation error:', err);
+      // Fallback for demo
+      alert('Kunde inte hämta din position. Kontrollera behörigheter.');
       setLoading(false);
-    }
+    }, { enableHighAccuracy: true, timeout: 5000 });
   };
 
   // Derive visible stations: filter by radius, then map to Station shape for current fuelType

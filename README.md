@@ -6,6 +6,18 @@
 
 ---
 
+## 📽️ Concept & Motivation: "The $0-to-Sync Experiment"
+
+This project was born out of a challenge: **"How can I build a state-of-the-art, cross-platform utility using only modern web technologies?"**
+
+I wanted to see if I could push the boundaries of a standard utility app by applying high-end industrial aesthetics usually reserved for premium SaaS products to a daily consumer problem—finding cheap fuel.
+
+- **What?**: A full-stack Progressive Web App (PWA) that syncs community-reported fuel prices across Sweden.
+- **How?**: By leveraging **Vite's** speed, **Tailwind v4's** CSS-first architecture, and **Firebase's** real-time Firestore synchronization. I integrated the **Overpass API** to turn static map data into a living search engine for fuel stations.
+- **Why?**: To master the art of "High-Craft UI" (Glassmorphism, dynamic branding) and to explore the complexities of handling real-world geographic telemetry at scale.
+
+---
+
 ## ⚡ Visual Experience: Carbon Neon Fuel
 
 The application features a custom-engineered design system focused on high-contrast readability and premium "Glassmorphism" effects.

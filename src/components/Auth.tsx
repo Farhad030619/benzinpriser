@@ -44,10 +44,8 @@ export default function Auth() {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        console.log('User created, sending verification email...');
         try {
           await sendEmailVerification(userCredential.user);
-          console.log('Verification email sent successfully!');
           setVerificationSent(true);
         } catch (verifErr: any) {
           console.error('Error sending verification email:', verifErr);

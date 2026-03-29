@@ -109,48 +109,32 @@ export default function Dashboard() {
           }
         } catch (e) { console.warn('Firestore failed:', e); }
 
-        // 4. Overpass - The working logic from 9dca7c2
+        // 4. Overpass - Parallel Race for maximum speed and reliability
         const query = `[out:json][timeout:30];node["amenity"="fuel"](around:15000,${latitude},${longitude});out 50;`;
         const mirrors = [
+          'https://overpass.private.coffee/api/interpreter',
           'https://overpass-api.de/api/interpreter',
           'https://lz4.overpass-api.de/api/interpreter',
-          'https://overpass.kumi.systems/api/interpreter',
-          'https://overpass.openstreetmap.fr/api/interpreter'
+          'https://z.overpass-api.de/api/interpreter'
         ];
 
-        let osmData: any = null;
-        for (const mirror of mirrors) {
-          try {
-            console.log('Trying mirror:', mirror);
-            
-            // 6 second timeout per mirror
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 6000);
-            
-            try {
-              const res = await fetch(`${mirror}?data=${encodeURIComponent(query)}`, {
-                signal: controller.signal
-              });
-              clearTimeout(timeoutId);
-              
-              if (res.ok) {
-                osmData = await res.json();
-                break;
-              }
-            } catch (err: any) {
-              clearTimeout(timeoutId);
-              if (err.name === 'AbortError') {
-                console.warn(`Mirror timed out: ${mirror}`);
-              } else {
-                throw err;
-              }
-            }
-          } catch (e) {
-            console.error('Mirror failed:', mirror, e);
-          }
-        }
+        const controller = new AbortController();
+        const fetchWithTimeout = async (url: string) => {
+          const res = await fetch(`${url}?data=${encodeURIComponent(query)}`, { 
+            signal: controller.signal 
+          });
+          if (!res.ok) throw new Error(`Mirror ${url} failed`);
+          return await res.json();
+        };
 
-        if (!osmData) throw new Error('Alla Overpass-servrar är upptagna. Prova igen om en stund.');
+        let osmData: any = null;
+        try {
+          osmData = await Promise.any(mirrors.map(m => fetchWithTimeout(m)));
+          controller.abort(); // Cancel other pending requests
+        } catch (e) {
+          console.error('All mirrors failed:', e);
+          throw new Error('Alla Overpass-servrar är upptagna. Prova igen om en stund.');
+        }
 
         // 5. Build
         const raw: RawStation[] = osmData.elements

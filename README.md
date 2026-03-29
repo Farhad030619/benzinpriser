@@ -1,66 +1,39 @@
-# ⛽ Bensinpris App
+# ⛽ Bensinpris App: Resilient Fuel Tracking & Logging
 
-En modern, mobilanpassad webbapplikation för att hitta de billigaste bensinstationerna i din närhet och logga dina tankningar med stil. 
+En modern, mobilanpassad webbapplikation byggd för att lösa ett vardagligt problem: att snabbt hitta billigaste bränslet och hålla koll på fordonskostnader i realtid.
 
 ![Dashboard Preview](https://github.com/Farhad030619/benzinpriser/raw/main/public/preview.png)
 
-## 📸 Förhandsvisning
+## 💡 Varför detta projekt?
 
-| Inloggning | Karta & Stationer | Din Profil |
-| :---: | :---: | :---: |
-| ![Login](https://github.com/Farhad030619/benzinpriser/raw/main/public/login_preview.png) | ![Dashboard](https://github.com/Farhad030619/benzinpriser/raw/main/public/preview.png) | ![Profile](https://github.com/Farhad030619/benzinpriser/raw/main/public/profile_preview.png) |
+Projektet startades för att utforska hur man bygger en **högpresterande och feltolerant frontend** som förlitar sig på publika API:er (OpenStreetMap). Målet var att skapa en lösning som är:
+1. **Resistent mot driftstörningar**: Genom att implementera "Mirror Rotation" för kartdata.
+2. **Serverless & Skalbar**: Med Firebase för autentisering och datalagring.
+3. **Användarfokuserad**: En "clean" design inspirerad av moderna finansappar.
 
-## ✨ Höjdpunkter
+## ✨ Tekniska Höjdpunkter
 
-- 📍 **Hitta stationer**: Automatisk positionsbestämning och sökning via Overpass API.
-- 💰 **Prisjämförelse**: Se direkt vilken station som är billigast, närmast eller har bäst trend i din valda radie.
-- ⛽ **Drivmedelsstöd**: Växla smidigt mellan Bensin 95, 98, Diesel och Fordonsgas.
-- 📱 **Progressive Web App**: Installera appen direkt på mobilen för en snabbare upplevelse.
-- 📊 **Historik**: Logga dina tankningar och följ din totala förbrukning och kostnad månadsvis.
-- 🎨 **Premium UI**: Modern "Glassmorphism"-design med mjuka animationer för en exklusiv känsla.
+- 🔄 **High Availability Overpass Logic**: Appen använder en rotationsalgoritm som testar 5 olika globala Overpass-servrar med intelligenta timeouts för att garantera dataåtkomst även vid 504-fel.
+- 🛡️ **Edge-baserad Prishämtning**: Använder Vercel Serverless Functions som proxy för att hämta priser från externa källor utan CORS-begränsningar.
+- 📉 **Ekonomiöversikt**: En dedikerad profil-tab som beräknar månadskostnader och förbrukning i realtid från Firebase-loggar.
+- 🎨 **Modern Design**: Byggd med Tailwind CSS och Inter-typografi för en premium känsla som fungerar sömlöst som en PWA på mobilen.
 
-## 🚀 Kom igång
+## 🛠 Teknikstack
 
-### Förutsättningar
-- Node.js (version 18 eller senare)
-- Ett Firebase-projekt
+- **Frontend**: [React](https://reactjs.org/) + [Vite](https://vitejs.dev/) (för blixtsnabb laddning)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) & [Framer Motion](https://www.framer.com/motion/) (mjuka övergångar)
+- **Backend**: [Firebase](https://firebase.google.com/) (Firestore för realtidsdata & Auth för säkerhet)
+- **Deployment**: [Vercel](https://vercel.com/) med konfigurerad Content-Security-Policy för högsta säkerhet.
 
-### Installation
+## 🚀 Installation & Installation
 
-1. Klona repot:
-   ```bash
-   git clone https://github.com/Farhad030619/benzinpriser.git
-   cd benzinpriser
-   ```
+För att köra projektet lokalt:
 
-2. Installera beroenden:
-   ```bash
-   npm install
-   ```
-
-3. Skapa en `.env`-fil i roten och lägg till dina Firebase-uppgifter:
-   ```env
-   VITE_FIREBASE_API_KEY=din_nyckel
-   VITE_FIREBASE_AUTH_DOMAIN=ditt_projekt.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=ditt_projekt
-   VITE_FIREBASE_STORAGE_BUCKET=ditt_projekt.appspot.com
-   VITE_FIREBASE_MESSAGING_SENDER_ID=ditt_id
-   VITE_FIREBASE_APP_ID=ditt_app_id
-   ```
-
-4. Starta utvecklingsservern:
-   ```bash
-   npm run dev
-   ```
-
-## 🛠 Teknik
-
-Appen är byggd med modern webbteknik för maximal prestanda:
-- **Frontend**: [React](https://reactjs.org/) & [Vite](https://vitejs.dev/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) & [Framer Motion](https://www.framer.com/motion/)
-- **Ikoner**: [Lucide React](https://lucide.dev/)
-- **Backend**: [Firebase](https://firebase.google.com/) (Firestore & Auth)
+1. **Klona repot**: `git clone https://github.com/Farhad030619/benzinpriser.git`
+2. **Installera**: `npm install`
+3. **Miljövariabler**: Skapa en `.env` med dina Firebase-nycklar (se `.env.example`).
+4. **Utveckla**: `npm run dev`
 
 ---
 
-*Utvecklad för att göra det enkelt och snyggt att spara pengar vid pumpen.*
+*Detta projekt visar hur man kan kombinera open-source data med modern molnteknik för att skapa verkligt användarvärde.*

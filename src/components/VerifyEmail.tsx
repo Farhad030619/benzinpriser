@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { auth } from '../lib/firebase';
-import { sendEmailVerification, signOut, reload, type User } from 'firebase/auth';
+import { sendEmailVerification, signOut, type User } from 'firebase/auth';
 import { Mail, RefreshCcw, LogOut, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -16,7 +16,7 @@ export default function VerifyEmail({ user, onRefresh }: VerifyEmailProps) {
   const handleRefresh = async () => {
     setLoading(true);
     try {
-      await reload(user);
+      await user.reload();
       onRefresh();
     } catch (error) {
       console.error('Error reloading user:', error);

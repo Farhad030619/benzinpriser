@@ -57,8 +57,11 @@ export default function Profile({ user }: { user: User }) {
         date: new Date()
       });
       setSek(''); setLit('');
-    } catch (error) {
-      alert('Kunde inte spara.');
+    } catch (error: any) {
+      console.error('Error saving refill:', error);
+      alert(error.code === 'permission-denied' 
+        ? 'Rättighet saknas! Du måste uppdatera dina Firestore Rules i Firebase Console.' 
+        : 'Kunde inte spara din tankning. Prova igen.');
     } finally {
       setLoading(false);
     }

@@ -82,20 +82,41 @@ export default function Dashboard() {
         const { latitude, longitude } = pos.coords;
 
         // Fetch ALL fuel stations nearby (no addr:street filter – we filter client-side)
-        const overpassQuery = `[out:json][timeout:25];node["amenity"="fuel"](around:25000,${latitude},${longitude});out 50;`;
+        const overpassQuery = `[out:json][timeout:30];node["amenity"="fuel"](around:${radius * 1000},${latitude},${longitude});out 50;`;
         const overpassMirrors = [
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
           'https://overpass.openstreetmap.fr/api/interpreter',
-          'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+          'https://lz4.overpass-api.de/api/interpreter',
+          'https://z.overpass-api.de/api/interpreter',
         ];
+        
         let osmData: any = { elements: [] };
+        let success = false;
+
         for (const mirror of overpassMirrors) {
           try {
-            const osmRes = await fetch(`${mirror}?data=${encodeURIComponent(overpassQuery)}`);
-            if (osmRes.ok) { osmData = await osmRes.json(); break; }
-            console.warn('Overpass mirror error:', mirror, osmRes.status);
-          } catch { /* try next mirror */ }
+            console.log(`Trying Overpass mirror: ${mirror}`);
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), 15000); // 15s per mirror
+
+            const osmRes = await fetch(`${mirror}?data=${encodeURIComponent(overpassQuery)}`, {
+              signal: controller.signal
+            });
+            clearTimeout(id);
+
+            if (osmRes.ok) { 
+              osmData = await osmRes.json(); 
+              success = true;
+              break; 
+            }
+          } catch (e) {
+            console.warn(`Mirror ${mirror} failed:`, e);
+          }
+        }
+
+        if (!success) {
+          throw new Error('Alla Overpass-servrar är upptagna. Prova igen om en stund.');
         }
 
         // Reverse geocode for county
@@ -153,11 +174,16 @@ export default function Dashboard() {
             return { id: sId, name, brand: el.tags.brand, address, lat: el.lat, lon: el.lon, distance: parseFloat(dist.toFixed(1)), prices };
           });
 
-        setAllStations(raw.sort((a, b) => a.distance - b.distance));
+        const stations = raw.sort((a, b) => a.distance - b.distance);
+        setAllStations(stations);
         setLoading(false);
-      }, () => setLoading(false));
-    } catch (err) {
-      console.error(err);
+      }, (err) => {
+        console.error('Geolocation error:', err);
+        setLoading(false);
+      }, { enableHighAccuracy: true, timeout: 5000 });
+    } catch (error: any) {
+      console.error('Error fetching stations:', error);
+      alert(error.message || 'Kunde inte hämta stationer.');
       setLoading(false);
     }
   };

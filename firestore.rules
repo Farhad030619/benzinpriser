@@ -5,14 +5,18 @@ service cloud.firestore {
     match /prices/{priceId} {
       allow read: if true;
       allow create: if request.auth != null;
-      // No updates/deletes for now to maintain history integrity
       allow update, delete: if false; 
     }
 
-    // User profiles: public can see ranks, but only owners can edit
+    // User profiles & logs: public can see top-level ranks, but only owners can manage logs
     match /users/{userId} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
+      
+      // Sub-collection for fuel logs
+      match /logs/{logId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
   }
 }

@@ -12,7 +12,6 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'home' | 'profile'>('home');
-  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -22,11 +21,10 @@ function App() {
     return unsub;
   }, []);
 
-  const refreshUser = async () => {
+  const refreshUser = () => {
     if (auth.currentUser) {
-      await auth.currentUser.reload();
-      setUser(auth.currentUser);
-      setRefreshKey(prev => prev + 1);
+      // Force a re-render by creating a new object reference
+      setUser({ ...auth.currentUser });
     }
   };
 
@@ -48,7 +46,7 @@ function App() {
   }
 
   if (!user.emailVerified) {
-    return <VerifyEmail key={refreshKey} user={user} onRefresh={refreshUser} />;
+    return <VerifyEmail user={user} onRefresh={refreshUser} />;
   }
 
   return (

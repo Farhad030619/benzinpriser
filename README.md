@@ -1,66 +1,90 @@
-# ⛽ Bensinpris App
+# ⛽ Bensinpris: Carbon Neon Fuel
 
-En modern, mobilanpassad webbapplikation för att hitta de billigaste bensinstationerna i din närhet och logga dina tankningar med stil. 
+![Bensinpris Header](https://raw.githubusercontent.com/Farhad030619/benzinpriser/main/public/preview.png)
 
-![Dashboard Preview](https://github.com/Farhad030619/benzinpriser/raw/main/public/preview.png)
+> **Bensinpris** is a premium, high-performance web application designed to help users discover the most competitive fuel prices in their vicinity. Built with a signature "Carbon Neon Fuel" aesthetic, it combines industrial design with real-time telemetry.
 
-## 📸 Förhandsvisning
+---
 
-| Inloggning | Karta & Stationer | Din Profil |
-| :---: | :---: | :---: |
-| ![Login](https://github.com/Farhad030619/benzinpriser/raw/main/public/login_preview.png) | ![Dashboard](https://github.com/Farhad030619/benzinpriser/raw/main/public/preview.png) | ![Profile](https://github.com/Farhad030619/benzinpriser/raw/main/public/profile_preview.png) |
+## ⚡ Visual Experience: Carbon Neon Fuel
 
-## ✨ Höjdpunkter
+The application features a custom-engineered design system focused on high-contrast readability and premium "Glassmorphism" effects.
 
-- 📍 **Hitta stationer**: Automatisk positionsbestämning och sökning via Overpass API.
-- 💰 **Prisjämförelse**: Se direkt vilken station som är billigast, närmast eller har bäst trend i din valda radie.
-- ⛽ **Drivmedelsstöd**: Växla smidigt mellan Bensin 95, 98, Diesel och Fordonsgas.
-- 📱 **Progressive Web App**: Installera appen direkt på mobilen för en snabbare upplevelse.
-- 📊 **Historik**: Logga dina tankningar och följ din totala förbrukning och kostnad månadsvis.
-- 🎨 **Premium UI**: Modern "Glassmorphism"-design med mjuka animationer för en exklusiv känsla.
+- **🌑 Carbon Dark Base**: A deep, neutral obsidian foundation (`zinc-950`) optimized for OLED displays and reduced eye strain.
+- **🌈 Dynamic Fuel Glow**: The entire interface adapts its neon accent colors (Amber, Sky, Emerald, Rose) based on the selected fuel type (95, Diesel, Gas, 98).
+- **🧪 Industrial Typography**: Utilizing **Sora** for bold, technical headers and **Space Grotesk** for clean, data-heavy displays.
+- **✨ Fluid Motion**: Powered by `framer-motion` for a responsive, "liquid" navigation and interaction feel.
 
-## 🚀 Kom igång
+---
 
-### Förutsättningar
-- Node.js (version 18 eller senare)
-- Ett Firebase-projekt
+## 🚀 Key Features
+
+- 📍 **Real-time Discovery**: Scans local geography using the Overpass API (OpenStreetMap) to find fuel stations within a 1-50km radius.
+- 💰 **Price Optimization**: Instant sorting by price or distance to find the "Best Alternative" at a glance.
+- 👨‍💻 **Community Telemetry**: Registered users can report prices directly from the pump, earning points and climbing the ranks.
+- 📈 **Trend Analysis**: Visual indicators for price stability and verification status.
+- 📱 **PWA-Ready**: Fully responsive and installable as a Progressive Web App for a native-like experience on iOS and Android.
+
+---
+
+## 🛠 Technology Stack
+
+### Core
+- **Framework**: [React 18](https://reactjs.org/) with [Vite](https://vitejs.dev/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Engine**: [Tailwind CSS v4](https://tailwindcss.com/)
+
+### Interaction & UI
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Fonts**: [Google Fonts (Sora & Space Grotesk)](https://fonts.google.com/)
+
+### Backend & Infrastructure
+- **Cloud**: [Firebase](https://firebase.google.com/) (Firestore & Authentication)
+- **Data Source**: [Overpass API](https://overpass-turbo.eu/) & [Nominatim](https://nominatim.org/)
+- **Deployment**: [Vercel](https://vercel.com/)
+
+---
+
+## 🔒 Security & Architecture
+
+- **Hardened Security Rules**: Firestore rules enforce authenticated writes and public read access, preventing unauthorized data tampering.
+- **API Proxying**: Sensitive geographic queries are handled with whitelist-based parameter validation.
+- **Clean Architecture**: Decoupled components with a centralized design token system in `index.css`.
+
+---
+
+## 📦 Getting Started
+
+### Prerequisites
+- Node.js 18+
+- Firebase Project
 
 ### Installation
 
-1. Klona repot:
+1. **Clone & Install**
    ```bash
    git clone https://github.com/Farhad030619/benzinpriser.git
    cd benzinpriser
-   ```
-
-2. Installera beroenden:
-   ```bash
    npm install
    ```
 
-3. Skapa en `.env`-fil i roten och lägg till dina Firebase-uppgifter:
+2. **Environment Configuration**
+   Create a `.env` file with your Firebase credentials:
    ```env
-   VITE_FIREBASE_API_KEY=din_nyckel
-   VITE_FIREBASE_AUTH_DOMAIN=ditt_projekt.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=ditt_projekt
-   VITE_FIREBASE_STORAGE_BUCKET=ditt_projekt.appspot.com
-   VITE_FIREBASE_MESSAGING_SENDER_ID=ditt_id
-   VITE_FIREBASE_APP_ID=ditt_app_id
+   VITE_FIREBASE_API_KEY=your_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_bucket
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_id
+   VITE_FIREBASE_APP_ID=your_app_id
    ```
 
-4. Starta utvecklingsservern:
+3. **Launch**
    ```bash
    npm run dev
    ```
 
-## 🛠 Teknik
-
-Appen är byggd med modern webbteknik för maximal prestanda:
-- **Frontend**: [React](https://reactjs.org/) & [Vite](https://vitejs.dev/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) & [Framer Motion](https://www.framer.com/motion/)
-- **Ikoner**: [Lucide React](https://lucide.dev/)
-- **Backend**: [Firebase](https://firebase.google.com/) (Firestore & Auth)
-
 ---
 
-*Utvecklad för att göra det enkelt och snyggt att spara pengar vid pumpen.*
+*Designed and developed for the modern driver.*

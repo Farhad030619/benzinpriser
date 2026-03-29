@@ -1,7 +1,8 @@
-import { useState } from 'react';
 import { auth } from '../lib/firebase';
-import { sendEmailVerification, signOut, reload, type User } from 'firebase/auth';
-import { Mail, RefreshCcw, LogOut, CheckCircle } from 'lucide-react';
+import { sendEmailVerification, signOut } from 'firebase/auth';
+import type { User } from 'firebase/auth';
+import { Mail, CheckCircle, RefreshCcw, Loader2, Zap } from 'lucide-react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 interface VerifyEmailProps {
@@ -11,82 +12,76 @@ interface VerifyEmailProps {
 
 export default function VerifyEmail({ user, onRefresh }: VerifyEmailProps) {
   const [loading, setLoading] = useState(false);
-  const [resent, setResent] = useState(false);
-
-  const handleRefresh = async () => {
-    setLoading(true);
-    try {
-      await reload(user);
-      onRefresh();
-    } catch (error) {
-      console.error('Error reloading user:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [sent, setSent] = useState(false);
 
   const handleResend = async () => {
     setLoading(true);
     try {
       await sendEmailVerification(user);
-      setResent(true);
-      setTimeout(() => setResent(false), 5000);
-    } catch (error) {
-      alert('Kunde inte skicka mejlet. Försök igen om en stund.');
+      setSent(true);
+      setTimeout(() => setSent(false), 3000);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-6 bg-brand-bg relative overflow-hidden">
-      <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-brand-orange/10 rounded-full blur-3xl" />
-      
+    <div className="min-h-screen flex items-center justify-center p-6 bg-zinc-950 relative overflow-hidden">
+      {/* Decorative Glows */}
+      <div className="absolute inset-0 pointer-events-none">
+         <div className="absolute top-1/4 -right-1/4 w-1/2 h-1/2 bg-blue-500/10 blur-[100px] rounded-full" />
+         <div className="absolute bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-amber-500/10 blur-[100px] rounded-full" />
+      </div>
+
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="glass-card w-full max-w-sm p-8 text-center z-10"
+        className="w-full max-w-sm relative z-10"
       >
-        <div className="w-20 h-20 bg-orange-50 text-brand-orange rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-soft">
-          <Mail size={40} />
-        </div>
+        <div className="glass-card p-12 text-center border-white/5 shadow-[0_30px_60px_rgba(0,0,0,0.8)]">
+          <div className="w-24 h-24 rounded-[2.5rem] bg-zinc-900 mx-auto mb-8 flex items-center justify-center border border-white/5 text-white">
+            <Mail size={42} strokeWidth={1.5} />
+          </div>
 
-        <h2 className="text-2xl font-black mb-2 text-zinc-800 tracking-tight">Verifiera din e-post</h2>
-        <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
-          Vi har skickat ett verifieringsmejl till <br />
-          <span className="font-bold text-zinc-800">{user.email}</span>. <br />
-          Vänligen klicka på länken i mejlet för att aktivera ditt konto.
-        </p>
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 mb-2 italic">Verifiering Krävdes</p>
+          <h2 className="text-3xl font-black tracking-tight uppercase leading-none text-white mb-6">KONTROLLERA DIN MAIL</h2>
+          
+          <p className="text-zinc-500 text-xs font-bold leading-relaxed mb-10 px-4">
+            Vi har skickat ett meddelande till <span className="text-white">{user.email}</span>. Aktivera ditt konto för att få full åtkomst.
+          </p>
 
-        <div className="space-y-4">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleRefresh}
-            disabled={loading}
-            className="w-full btn-primary flex items-center justify-center gap-2"
-          >
-            {loading ? <RefreshCcw size={18} className="animate-spin" /> : <CheckCircle size={18} />}
-            <span>Jag har verifierat</span>
-          </motion.button>
+          <div className="space-y-4">
+            <button 
+              onClick={() => onRefresh()}
+              className="w-full h-16 btn-primary flex items-center justify-center gap-3"
+            >
+              <Zap size={18} fill="currentColor" />
+              <span>Jag har verifierat</span>
+            </button>
 
-          <button
-            onClick={handleResend}
-            disabled={loading || resent}
-            className="text-xs font-bold text-zinc-400 hover:text-brand-orange uppercase tracking-widest transition-colors flex items-center justify-center gap-2 mx-auto"
-          >
-            {resent ? 'Mejl skickat!' : 'Skicka verifieringsmejl igen'}
-          </button>
-        </div>
+            <button 
+              onClick={handleResend}
+              disabled={loading || sent}
+              className="w-full h-14 glass-card font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 border border-white/5 hover:bg-zinc-800"
+            >
+              {loading ? (
+                <Loader2 size={16} className="animate-spin text-zinc-400" />
+              ) : sent ? (
+                <> <CheckCircle size={16} className="text-emerald-500" /> Skickat! </>
+              ) : (
+                <> <RefreshCcw size={16} /> Skicka igen </>
+              )}
+            </button>
 
-        <div className="mt-10 pt-6 border-t border-zinc-100">
-          <button
-            onClick={() => signOut(auth)}
-            className="flex items-center justify-center gap-2 text-zinc-400 hover:text-red-500 transition-colors mx-auto text-sm font-bold"
-          >
-            <LogOut size={16} />
-            <span>Logga ut</span>
-          </button>
+            <button 
+              onClick={() => signOut(auth)}
+              className="w-full pt-4 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 hover:text-white transition-colors"
+            >
+              Logga ut och börja om
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>

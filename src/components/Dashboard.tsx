@@ -122,12 +122,32 @@ export default function Dashboard() {
         for (const mirror of mirrors) {
           try {
             console.log('Trying mirror:', mirror);
-            const res = await fetch(`${mirror}?data=${encodeURIComponent(query)}`);
-            if (res.ok) {
-              osmData = await res.json();
-              break;
+            
+            // 6 second timeout per mirror
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            
+            try {
+              const res = await fetch(`${mirror}?data=${encodeURIComponent(query)}`, {
+                signal: controller.signal
+              });
+              clearTimeout(timeoutId);
+              
+              if (res.ok) {
+                osmData = await res.json();
+                break;
+              }
+            } catch (err: any) {
+              clearTimeout(timeoutId);
+              if (err.name === 'AbortError') {
+                console.warn(`Mirror timed out: ${mirror}`);
+              } else {
+                throw err;
+              }
             }
-          } catch (e) { console.error('Mirror failed:', mirror, e); }
+          } catch (e) {
+            console.error('Mirror failed:', mirror, e);
+          }
         }
 
         if (!osmData) throw new Error('Alla Overpass-servrar är upptagna. Prova igen om en stund.');

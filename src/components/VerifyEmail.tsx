@@ -39,8 +39,8 @@ export default function VerifyEmail({ user, onRefresh }: VerifyEmailProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-6 bg-brand-bg relative overflow-hidden">
-      <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-brand-orange/10 rounded-full blur-3xl" />
+    <div className="min-h-screen flex flex-col justify-center items-center px-6 bg-[var(--bg-page)] relative overflow-hidden">
+      <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-brand-orange/5 rounded-full blur-3xl" />
       
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
@@ -51,10 +51,10 @@ export default function VerifyEmail({ user, onRefresh }: VerifyEmailProps) {
           <Mail size={40} />
         </div>
 
-        <h2 className="text-2xl font-black mb-2 text-zinc-800 tracking-tight">Verifiera din e-post</h2>
-        <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
+        <h2 className="text-2xl font-black mb-2 text-[var(--text-main)] tracking-tight">Verifiera din e-post</h2>
+        <p className="text-[var(--text-muted)] text-sm mb-8 leading-relaxed">
           Vi har skickat ett verifieringsmejl till <br />
-          <span className="font-bold text-zinc-800">{user.email}</span>. <br />
+          <span className="font-bold text-[var(--text-main)]">{user.email}</span>. <br />
           Vänligen klicka på länken i mejlet för att aktivera ditt konto.
         </p>
 
@@ -73,16 +73,16 @@ export default function VerifyEmail({ user, onRefresh }: VerifyEmailProps) {
           <button
             onClick={handleResend}
             disabled={loading || resent}
-            className="text-xs font-bold text-zinc-400 hover:text-brand-orange uppercase tracking-widest transition-colors flex items-center justify-center gap-2 mx-auto"
+            className="text-xs font-bold text-[var(--text-muted)] hover:text-brand-orange uppercase tracking-widest transition-colors flex items-center justify-center gap-2 mx-auto"
           >
             {resent ? 'Mejl skickat!' : 'Skicka verifieringsmejl igen'}
           </button>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-zinc-100">
+        <div className="mt-10 pt-6 border-t border-[var(--bg-secondary)]">
           <button
             onClick={() => signOut(auth)}
-            className="flex items-center justify-center gap-2 text-zinc-400 hover:text-red-500 transition-colors mx-auto text-sm font-bold"
+            className="flex items-center justify-center gap-2 text-[var(--text-muted)] hover:text-red-500 transition-colors mx-auto text-sm font-bold"
           >
             <LogOut size={16} />
             <span>Logga ut</span>

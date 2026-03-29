@@ -6,7 +6,13 @@ import { signOut, type User } from 'firebase/auth';
 import { LogOut, Trash2, Fuel, Plus, User as UserIcon, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function Profile({ user }: { user: User }) {
+interface ProfileProps {
+  user: User;
+  isDark: boolean;
+  toggleTheme: () => void;
+}
+
+export default function Profile({ user, isDark, toggleTheme }: ProfileProps) {
   const [logs, setLogs] = useState<FuelLog[]>([]);
   const [sek, setSek] = useState('');
   const [lit, setLit] = useState('');
@@ -88,14 +94,14 @@ export default function Profile({ user }: { user: User }) {
   return (
     <div className="pt-2">
       <header className="flex justify-between items-center mb-8 relative">
-        <motion.h1 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="text-3xl font-black text-zinc-900 tracking-tight">Din Profil</motion.h1>
+        <motion.h1 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="text-3xl font-black text-[var(--text-main)] tracking-tight">Din Profil</motion.h1>
         
         {/* User menu button */}
         <div ref={menuRef} className="relative">
           <motion.button 
             whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
             onClick={() => setMenuOpen(!menuOpen)}
-            className="w-10 h-10 bg-white rounded-2xl shadow-soft flex items-center justify-center text-zinc-500 hover:text-brand-orange transition-colors"
+            className="w-10 h-10 bg-[var(--bg-card)] rounded-2xl shadow-soft flex items-center justify-center text-[var(--text-muted)] hover:text-brand-orange transition-colors"
           >
             <UserIcon size={20} />
           </motion.button>
@@ -109,10 +115,10 @@ export default function Profile({ user }: { user: User }) {
                 className="absolute right-0 top-12 w-56 glass-card p-3 z-50 shadow-xl"
               >
                 <div className="px-3 py-2 mb-2">
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Inloggad som</p>
-                  <p className="text-sm font-bold text-zinc-800 truncate">{user.email}</p>
+                  <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Inloggad som</p>
+                  <p className="text-sm font-bold text-[var(--text-main)] truncate">{user.email}</p>
                 </div>
-                <div className="border-t border-zinc-100 pt-2">
+                <div className="border-t border-[var(--bg-secondary)] pt-2">
                   <button
                     onClick={() => signOut(auth)}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-colors"
@@ -150,16 +156,16 @@ export default function Profile({ user }: { user: User }) {
         onSubmit={handleSave} className="glass-card p-6 mb-10"
       >
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center text-brand-orange"><Plus size={18} strokeWidth={3} /></div>
-          <h3 className="font-black text-lg text-zinc-800 tracking-tight">Logga tankning</h3>
+          <div className="w-8 h-8 rounded-xl bg-brand-orange/10 flex items-center justify-center text-brand-orange"><Plus size={18} strokeWidth={3} /></div>
+          <h3 className="font-black text-lg text-[var(--text-main)] tracking-tight">Logga tankning</h3>
         </div>
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">Belopp (kr)</label>
+            <label className="block text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest px-1">Belopp (kr)</label>
             <input type="number" min="0" step="0.01" value={sek} onChange={(e) => setSek(e.target.value)} className="input-field" placeholder="800" required />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">Volym (lit)</label>
+            <label className="block text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest px-1">Volym (lit)</label>
             <input type="number" min="0" step="0.01" value={lit} onChange={(e) => setLit(e.target.value)} className="input-field" placeholder="40" required />
           </div>
         </div>
@@ -172,13 +178,54 @@ export default function Profile({ user }: { user: User }) {
         </motion.button>
       </motion.form>
 
+      {/* Settings / Dark Mode */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+        className="glass-card p-6 mb-8 flex items-center justify-between"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-main)]">
+            {isDark ? (
+              <motion.div initial={{ rotate: -45, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              </motion.div>
+            ) : (
+              <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+              </motion.div>
+            )}
+          </div>
+          <div>
+            <h3 className="font-black text-sm text-[var(--text-main)] tracking-tight">Mörkt läge</h3>
+            <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">{isDark ? 'Aktivt' : 'Inaktivt'}</p>
+          </div>
+        </div>
+        
+        <button 
+          onClick={toggleTheme}
+          className={`relative w-14 h-8 rounded-full p-1 transition-colors duration-300 ${isDark ? 'bg-brand-orange' : 'bg-[var(--bg-secondary)]'}`}
+        >
+          <motion.div 
+            animate={{ x: isDark ? 24 : 0 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            className="w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center"
+          >
+            {isDark ? (
+              <div className="w-1 h-1 bg-brand-orange rounded-full" />
+            ) : (
+              <div className="w-1 h-1 bg-[var(--text-muted)] rounded-full" />
+            )}
+          </motion.div>
+        </button>
+      </motion.div>
+
       {/* List */}
       <div className="space-y-4">
-        <h2 className="text-xs font-black text-zinc-400 uppercase tracking-widest px-2 mb-2">Tankningshistorik</h2>
+        <h2 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest px-2 mb-2">Tankningshistorik</h2>
         <div className="space-y-3">
           <AnimatePresence mode="popLayout" initial={false}>
             {logs.length === 0 ? (
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-zinc-400 text-sm font-bold text-center py-10 glass-card border-dashed">
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[var(--text-muted)] text-sm font-bold text-center py-10 glass-card border-dashed">
                 Inga tankningar än.
               </motion.p>
             ) : (
@@ -188,14 +235,14 @@ export default function Profile({ user }: { user: User }) {
                   className="glass-card p-5 flex justify-between items-center group"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400"><Fuel size={18} /></div>
+                    <div className="w-10 h-10 rounded-2xl bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-muted)]"><Fuel size={18} /></div>
                     <div>
-                      <h4 className="font-black text-zinc-900 tracking-tight">{log.date.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' })}</h4>
-                      <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">{log.lit} liter</p>
+                      <h4 className="font-black text-[var(--text-main)] tracking-tight">{log.date.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' })}</h4>
+                      <p className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider">{log.lit} liter</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-black text-xl text-zinc-900 tracking-tighter">{log.sek}<span className="text-[10px] ml-0.5 text-zinc-400 uppercase tracking-normal">kr</span></span>
+                    <span className="font-black text-xl text-[var(--text-main)] tracking-tighter">{log.sek}<span className="text-[10px] ml-0.5 text-[var(--text-muted)] uppercase tracking-normal">kr</span></span>
                     <motion.button 
                       whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                       onClick={() => handleDelete(log.id)}
@@ -211,40 +258,44 @@ export default function Profile({ user }: { user: User }) {
         </div>
       </div>
 
-      {/* Confirmation Dialog */}
+      {/* Confirmation Dialog - Fixed Performance */}
       <AnimatePresence>
         {confirmDeleteId && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          >
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="glass-card p-6 max-w-sm w-full text-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmDeleteId(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative glass-card p-8 max-w-sm w-full text-center shadow-2xl border-[var(--border-main)]"
             >
-              <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
-              <h3 className="text-xl font-black text-zinc-900 mb-2">Bekräfta borttagning</h3>
-              <p className="text-zinc-600 mb-6">Är du säker på att du vill ta bort denna tankning? Denna åtgärd kan inte ångras.</p>
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <AlertCircle size={32} className="text-red-500" />
+              </div>
+              <h3 className="text-2xl font-black text-[var(--text-main)] mb-2 tracking-tight">Radera?</h3>
+              <p className="text-[var(--text-muted)] font-medium mb-8">Denna tankning försvinner för alltid. Är du helt säker?</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmDeleteId(null)}
-                  className="flex-1 btn-secondary"
+                  className="flex-1 btn-secondary py-4"
                 >
                   Avbryt
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="flex-1 btn-danger"
+                  className="flex-1 btn-danger py-4"
                 >
-                  Ta bort
+                  Radera
                 </button>
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

@@ -85,8 +85,8 @@ export default function Auth() {
         >
           <Flame size={40} />
         </motion.div>
-        <h1 className="text-4xl font-black text-zinc-900 mb-2 tracking-tight">Bensinpris</h1>
-        <p className="text-zinc-500 font-medium">Hitta bäst pris & logga tankningar</p>
+        <h1 className="text-4xl font-black text-[var(--text-main)] mb-2 tracking-tight">Bensinpris</h1>
+        <p className="text-[var(--text-muted)] font-bold">Hitta bäst pris & logga tankningar</p>
       </motion.div>
 
       <motion.div 
@@ -101,7 +101,7 @@ export default function Auth() {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
-            className="text-2xl font-black mb-8 text-zinc-800"
+            className="text-2xl font-black mb-8 text-[var(--text-main)]"
           >
             {isLogin ? 'Välkommen åter' : 'Skapa nytt konto'}
           </motion.h2>
@@ -131,7 +131,7 @@ export default function Auth() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">E-post</label>
+            <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest px-1">E-post</label>
             <input
               type="email"
               value={email}
@@ -142,7 +142,7 @@ export default function Auth() {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">Lösenord</label>
+            <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest px-1">Lösenord</label>
             <input
               type="password"
               value={password}
@@ -174,7 +174,7 @@ export default function Auth() {
               setIsLogin(!isLogin);
               setError('');
             }}
-            className="text-sm text-zinc-400 hover:text-brand-orange font-bold uppercase tracking-wider transition-colors"
+            className="text-sm text-[var(--text-muted)] hover:text-brand-orange font-bold uppercase tracking-wider transition-colors"
           >
             {isLogin ? 'Skapa konto istället' : 'Har du redan konto? Logga in'}
           </button>

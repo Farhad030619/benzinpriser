@@ -62,19 +62,19 @@ export default function ReportPriceModal({ station, onClose, onSuccess }: Report
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         className="glass-card w-full max-w-sm p-8 relative z-10"
       >
-        <button onClick={onClose} className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600">
+        <button onClick={onClose} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[var(--text-main)]">
           <X size={20} />
         </button>
 
         <AnimatePresence mode="wait">
           {!showSuccess ? (
             <motion.div key="form" exit={{ opacity: 0, scale: 0.95 }}>
-              <h2 className="text-xl font-black mb-1 text-zinc-900 tracking-tight">Rapportera pris</h2>
-              <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-6">{station.name}</p>
+              <h2 className="text-xl font-black mb-1 text-[var(--text-main)] tracking-tight">Rapportera pris</h2>
+              <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-6">{station.name}</p>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">Aktuellt pris för {station.fuelType}</label>
+                  <label className="block text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest px-1">Aktuellt pris för {station.fuelType}</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -85,7 +85,7 @@ export default function ReportPriceModal({ station, onClose, onSuccess }: Report
                       autoFocus
                       required
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 font-black">kr</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-black">kr</span>
                   </div>
                 </div>
 
@@ -106,8 +106,8 @@ export default function ReportPriceModal({ station, onClose, onSuccess }: Report
               <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                 <Check size={32} strokeWidth={3} />
               </div>
-              <h3 className="text-xl font-black text-zinc-900">Tack för hjälpen!</h3>
-              <p className="text-zinc-500 font-medium text-sm mt-1">Priset har uppdaterats för alla.</p>
+              <h3 className="text-xl font-black text-[var(--text-main)]">Tack för hjälpen!</h3>
+              <p className="text-[var(--text-muted)] font-medium text-sm mt-1">Priset har uppdaterats för alla.</p>
             </motion.div>
           )}
         </AnimatePresence>

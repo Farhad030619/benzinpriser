@@ -208,8 +208,8 @@ export default function Dashboard() {
     <div className="pt-2">
       <header className="mb-8 relative">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-black text-zinc-900 tracking-tight">Hitta station</h1>
-          <div className="flex items-center gap-2 text-sm text-zinc-500 mt-2 font-medium">
+          <h1 className="text-3xl font-black text-[var(--text-main)] tracking-tight">Hitta station</h1>
+          <div className="flex items-center gap-2 text-sm text-[var(--text-muted)] mt-2 font-medium">
             <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
             Position hittad
           </div>
@@ -248,11 +248,11 @@ export default function Dashboard() {
             <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500"><MapPin size={18} /></div>
             <span className="text-[10px] font-black text-emerald-500 uppercase bg-emerald-50 px-2 py-1 rounded-lg">Närmast</span>
           </div>
-          <div className="text-xl font-black text-zinc-900 tracking-tighter">
+          <div className="text-xl font-black text-[var(--text-main)] tracking-tighter">
             {loading ? '--.-' : nearestStation ? nearestStation.distance.toFixed(1) : '--.-'}
             <span className="text-xs ml-0.5 text-zinc-400 font-bold">km</span>
           </div>
-          <p className="text-[10px] text-zinc-400 font-bold mt-1 truncate">{nearestStation?.name || '...'}</p>
+          <p className="text-[10px] text-[var(--text-muted)] font-bold mt-1 truncate">{nearestStation?.name || '...'}</p>
         </motion.div>
 
         <motion.div
@@ -279,7 +279,7 @@ export default function Dashboard() {
                 key={type}
                 onClick={() => setFuelType(type)}
                 className={`whitespace-nowrap px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
-                  fuelType === type ? 'bg-zinc-900 text-white shadow-lg' : 'bg-zinc-50 text-zinc-400 hover:text-zinc-600'
+                  fuelType === type ? 'bg-[var(--text-main)] text-[var(--bg-page)] shadow-lg' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >
                 {fuelNames[type]}
@@ -289,8 +289,8 @@ export default function Dashboard() {
           <div>
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-zinc-400" />
-                <span className="text-xs font-black text-zinc-800 uppercase tracking-widest">Sökradie</span>
+                <Search className="w-4 h-4 text-[var(--text-muted)]" />
+                <span className="text-xs font-black text-[var(--text-main)] uppercase tracking-widest">Sökradie</span>
               </div>
               <span className="bg-brand-orange/10 text-brand-orange px-3 py-1 rounded-full text-xs font-black">{radius} km</span>
             </div>
@@ -302,16 +302,16 @@ export default function Dashboard() {
       {/* Station List */}
       <div className="space-y-4">
         <div className="flex items-center justify-between px-2 mb-2">
-          <h2 className="text-lg font-black text-zinc-900 tracking-tight">Stationer</h2>
+          <h2 className="text-lg font-black text-[var(--text-main)] tracking-tight">Stationer</h2>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSortBy(s => s === 'distance' ? 'price' : 'distance')}
-              className="flex items-center gap-1.5 text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl shadow-sm hover:shadow-md transition-all"
+              className="flex items-center gap-1.5 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest bg-[var(--bg-card)] px-3 py-1.5 rounded-xl shadow-sm hover:shadow-md transition-all"
             >
               <ArrowUpDown size={10} />
               {sortBy === 'distance' ? 'Avstånd' : 'Pris'}
             </button>
-            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+            <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">
               {loading ? '...' : `${sortedStations.length} hittade`}
             </span>
           </div>
@@ -322,8 +322,8 @@ export default function Dashboard() {
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="glass-card p-5 animate-pulse flex items-center gap-4">
-                  <div className="w-12 h-12 bg-zinc-100 rounded-2xl" />
-                  <div className="flex-1 space-y-2"><div className="h-4 bg-zinc-100 rounded w-1/3" /><div className="h-3 bg-zinc-100 rounded w-1/2" /></div>
+                  <div className="w-12 h-12 bg-[var(--bg-secondary)] rounded-2xl" />
+                  <div className="flex-1 space-y-2"><div className="h-4 bg-[var(--bg-secondary)] rounded w-1/3" /><div className="h-3 bg-[var(--bg-secondary)] rounded w-1/2" /></div>
                 </div>
               ))}
             </div>
@@ -336,12 +336,12 @@ export default function Dashboard() {
                 className="glass-card p-5 cursor-pointer active:scale-[0.98] flex items-center justify-between group"
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-brand-orange shrink-0 group-hover:bg-brand-orange group-hover:text-white transition-colors duration-300">
+                  <div className="w-12 h-12 rounded-2xl bg-[var(--bg-secondary)] flex items-center justify-center text-brand-orange shrink-0 group-hover:bg-brand-orange group-hover:text-white transition-colors duration-300">
                     <Fuel size={24} />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-black text-zinc-900 truncate tracking-tight">{station.name}</h3>
+                      <h3 className="font-black text-[var(--text-main)] truncate tracking-tight">{station.name}</h3>
                       {station.isVerified && (
                         <div className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter shrink-0 border border-emerald-100">
                           <CheckCircle size={10} strokeWidth={3} />
@@ -349,7 +349,7 @@ export default function Dashboard() {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] font-bold mt-0.5">
+                    <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-[11px] font-bold mt-0.5">
                       <MapPin size={12} className="shrink-0" />
                       <span className="truncate">{station.address}</span>
                       <span className="shrink-0">• {station.distance} km</span>
@@ -364,13 +364,13 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="text-right shrink-0 ml-4">
-                  <div className={`text-xl font-black tracking-tighter leading-none mb-1 ${station.isVerified ? 'text-emerald-600' : 'text-zinc-900'}`}>
+                  <div className={`text-xl font-black tracking-tighter leading-none mb-1 ${station.isVerified ? 'text-emerald-600' : 'text-[var(--text-main)]'}`}>
                     {station.price.toFixed(2)}
                     <span className="text-[10px] ml-0.5 text-zinc-400 font-bold tracking-normal uppercase">kr</span>
                   </div>
                   <div className={`text-[10px] font-black flex items-center justify-end gap-1 ${(station.change ?? 0) > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
                     {station.isVerified ? (
-                      <span className="text-zinc-300 opacity-60">Just nu</span>
+                      <span className="text-[var(--text-muted)] opacity-60">Just nu</span>
                     ) : (
                       <>
                         {(station.change ?? 0) > 0 ? '+' : ''}{(station.change ?? 0).toFixed(2)}
@@ -397,8 +397,8 @@ export default function Dashboard() {
 
       {!loading && sortedStations.length === 0 && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12 glass-card border-dashed mt-4">
-          <Info className="w-8 h-8 text-zinc-300 mx-auto mb-3" />
-          <p className="text-zinc-500 font-bold">Inga stationer inom {radius} km.</p>
+          <Info className="w-8 h-8 text-[var(--text-muted)] mx-auto mb-3" />
+          <p className="text-[var(--text-muted)] font-bold">Inga stationer inom {radius} km.</p>
         </motion.div>
       )}
     </div>

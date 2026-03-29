@@ -12,6 +12,13 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'home' | 'profile'>('home');
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') === 'dark' || 
+             (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    return false;
+  });
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -20,6 +27,18 @@ function App() {
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDark]);
+
+  const toggleTheme = () => setIsDark(!isDark);
 
   const refreshUser = () => {
     if (auth.currentUser) {
@@ -50,7 +69,7 @@ function App() {
   }
 
   return (
-    <div className="relative min-h-screen bg-brand-bg selection:bg-brand-orange/20">
+    <div className="relative min-h-screen bg-brand-bg text-[var(--text-main)] selection:bg-brand-orange/20 transition-colors duration-300">
       <AnimatePresence mode="wait">
         <motion.main 
           key={activeTab}
@@ -60,12 +79,16 @@ function App() {
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           className="max-w-md mx-auto p-5 pb-32"
         >
-          {activeTab === 'home' ? <Dashboard /> : <Profile user={user} />}
+          {activeTab === 'home' ? (
+            <Dashboard />
+          ) : (
+            <Profile user={user} isDark={isDark} toggleTheme={toggleTheme} />
+          )}
         </motion.main>
       </AnimatePresence>
-
+ 
       {/* Bottom Nav */}
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-sm bg-white/90 backdrop-blur-xl rounded-full shadow-2xl p-2 flex justify-around items-center z-50 border border-white/50">
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-sm bg-[var(--bg-card)] backdrop-blur-xl rounded-full shadow-2xl p-2 flex justify-around items-center z-50 border border-[var(--border-main)]">
         <button
           onClick={() => setActiveTab('home')}
           className="relative flex-1 flex flex-col items-center py-3 rounded-full transition-all duration-300 group"
@@ -79,11 +102,11 @@ function App() {
           <MapPin 
             size={20} 
             className={`relative z-10 transition-colors duration-300 ${
-              activeTab === 'home' ? 'text-white fill-white/10' : 'text-zinc-400 group-hover:text-zinc-600'
+              activeTab === 'home' ? 'text-white' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'
             }`} 
           />
           <span className={`relative z-10 text-[9px] font-black mt-1 uppercase tracking-wider transition-colors duration-300 ${
-            activeTab === 'home' ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-600'
+            activeTab === 'home' ? 'text-white' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'
           }`}>
             Karta
           </span>
@@ -101,11 +124,11 @@ function App() {
           <UserIcon 
             size={20} 
             className={`relative z-10 transition-colors duration-300 ${
-              activeTab === 'profile' ? 'text-white fill-white/10' : 'text-zinc-400 group-hover:text-zinc-600'
+              activeTab === 'profile' ? 'text-white' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'
             }`} 
           />
           <span className={`relative z-10 text-[9px] font-black mt-1 uppercase tracking-wider transition-colors duration-300 ${
-            activeTab === 'profile' ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-600'
+            activeTab === 'profile' ? 'text-white' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'
           }`}>
             Profil
           </span>

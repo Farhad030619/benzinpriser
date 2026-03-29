@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { X, Check, Loader2, Zap, Fuel as FuelIcon } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import type { Station, FuelType } from '../types';
-import { motion } from 'framer-motion';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { X, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import type { Station } from '../types';
 
 interface ReportPriceModalProps {
   station: Station;
@@ -11,107 +11,107 @@ interface ReportPriceModalProps {
   onSuccess: () => void;
 }
 
-const fuelNames: Record<FuelType, string> = {
-  bensin: 'Bensin 95',
-  diesel: 'Diesel',
-  gas: 'Fordonsgas',
-  bensin98: 'Bensin 98'
-};
-
-const fuelColors: Record<FuelType, string> = {
-  bensin: 'text-amber-400 border-amber-500/20 shadow-neon-amber',
-  diesel: 'text-sky-400 border-sky-500/20 shadow-neon-blue',
-  gas: 'text-emerald-400 border-emerald-500/20 shadow-neon-emerald',
-  bensin98: 'text-rose-400 border-rose-500/20 shadow-neon-rose'
-};
-
 export default function ReportPriceModal({ station, onClose, onSuccess }: ReportPriceModalProps) {
   const [price, setPrice] = useState(station.price.toString());
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth.currentUser) return;
-    setLoading(true);
+    const val = parseFloat(price.replace(',', '.'));
+    if (isNaN(val) || val <= 0) {
+      alert('Ange ett giltigt pris.');
+      return;
+    }
 
+    setLoading(true);
     try {
-      await addDoc(collection(db, 'prices'), {
+      const priceDocId = `${station.id}_${station.fuelType}`;
+      await setDoc(doc(db, 'prices', priceDocId), {
         stationId: station.id,
-        stationName: station.name,
-        price: parseFloat(price),
         fuelType: station.fuelType,
-        userId: auth.currentUser.uid,
-        updatedAt: Timestamp.now(),
+        price: val,
+        updatedAt: serverTimestamp(),
+        reportedBy: auth.currentUser?.uid
       });
-      setSuccess(true);
+      
+      setShowSuccess(true);
       setTimeout(() => {
         onSuccess();
         onClose();
       }, 1500);
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error('Error reporting price:', error);
+      alert('Kunde inte spara priset.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zinc-950/80 backdrop-blur-md"
-    >
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 pb-32">
       <motion.div 
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        className="w-full max-w-sm glass-card p-10 border-white/5 relative shadow-[0_30px_60px_rgba(0,0,0,0.8)]"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm" 
+      />
+      
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="glass-card w-full max-w-sm p-8 relative z-10"
       >
-        <button onClick={onClose} className="absolute right-6 top-6 text-zinc-500 hover:text-white transition-colors">
+        <button onClick={onClose} className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600">
           <X size={20} />
         </button>
 
-        <div className="text-center mb-10">
-           <div className={`w-16 h-16 rounded-[1.5rem] bg-zinc-900 mx-auto mb-6 flex items-center justify-center border border-white/5 ${fuelColors[station.fuelType as FuelType]}`}>
-              <FuelIcon size={32} />
-           </div>
-           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 mb-2 italic">Data-inskick</p>
-           <h2 className="text-2xl font-black tracking-tight uppercase leading-none">{station.name}</h2>
-           <p className="text-[11px] font-bold text-zinc-600 mt-2 truncate px-4">{station.address}</p>
-        </div>
+        <AnimatePresence mode="wait">
+          {!showSuccess ? (
+            <motion.div key="form" exit={{ opacity: 0, scale: 0.95 }}>
+              <h2 className="text-xl font-black mb-1 text-zinc-900 tracking-tight">Rapportera pris</h2>
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-6">{station.name}</p>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-           <div>
-              <div className="flex justify-between items-center mb-3">
-                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Aktuellt Pris ({fuelNames[station.fuelType as FuelType]})</span>
-                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">SEK/Lit</span>
-              </div>
-              <div className="relative">
-                 <input 
-                   type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)}
-                   className="w-full bg-zinc-950/50 border border-white/5 rounded-3xl p-8 text-center text-5xl font-black tracking-tighter focus:outline-none focus:ring-2 focus:ring-white/10 transition-all text-white placeholder-zinc-800"
-                   required
-                 />
-              </div>
-           </div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">Aktuellt pris för {station.fuelType}</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      className="input-field text-2xl font-black pr-12"
+                      autoFocus
+                      required
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 font-black">kr</span>
+                  </div>
+                </div>
 
-           <button 
-             type="submit" disabled={loading || success}
-             className={`w-full h-20 rounded-[2.5rem] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 ${
-               success ? 'bg-emerald-500 text-white' : 'bg-white text-zinc-950 hover:scale-105 active:scale-95'
-             }`}
-           >
-             {loading ? <Loader2 className="animate-spin" size={24} /> : success ? <Check size={24} /> : (
-               <>
-                 <span>Uppdatera</span>
-                 <Zap size={18} fill="currentColor" />
-               </>
-             )}
-           </button>
-          </form>
-        </motion.div>
-    </motion.div>
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  type="submit" disabled={loading}
+                  className="w-full btn-primary"
+                >
+                  {loading ? 'Sparar...' : 'Bekräfta pris'}
+                </motion.button>
+              </form>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+              className="py-8 text-center"
+            >
+              <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <Check size={32} strokeWidth={3} />
+              </div>
+              <h3 className="text-xl font-black text-zinc-900">Tack för hjälpen!</h3>
+              <p className="text-zinc-500 font-medium text-sm mt-1">Priset har uppdaterats för alla.</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </div>
   );
 }

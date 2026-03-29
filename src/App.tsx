@@ -5,7 +5,7 @@ import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import Profile from './components/Profile';
 import VerifyEmail from './components/VerifyEmail';
-import { MapPin, UserIcon, Zap } from 'lucide-react';
+import { MapPin, UserIcon, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
@@ -32,16 +32,13 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 gap-4">
+      <div className="min-h-screen flex items-center justify-center bg-brand-bg">
         <motion.div 
-          animate={{ rotate: 360, scale: [1, 1.1, 1] }} 
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="relative"
+          animate={{ scale: [1, 1.2, 1] }} 
+          transition={{ duration: 1, repeat: Infinity }}
         >
-          <div className="absolute inset-0 bg-white/10 blur-2xl rounded-full scale-150" />
-          <Zap className="w-12 h-12 text-white relative z-10" />
+          <Loader2 className="w-10 h-10 text-brand-orange animate-spin" />
         </motion.div>
-        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 animate-pulse">Initierar Bensinpris</span>
       </div>
     );
   }
@@ -55,78 +52,62 @@ function App() {
   }
 
   return (
-    <div className="relative min-h-screen bg-zinc-950 selection:bg-white/20 text-white">
-      {/* Background Decorative Glows */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-amber-500/5 blur-[120px]" />
-        <div className="absolute top-[20%] -right-[10%] w-[30%] h-[30%] rounded-full bg-blue-500/5 blur-[100px]" />
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-[50%] bg-gradient-to-t from-zinc-900/20 to-transparent" />
-      </div>
-
+    <div className="relative min-h-screen bg-brand-bg selection:bg-brand-orange/20">
       <AnimatePresence mode="wait">
         <motion.main 
           key={activeTab}
-          initial={{ opacity: 0, y: 10, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 1.02 }}
-          transition={{ type: "spring", stiffness: 400, damping: 40 }}
-          className="relative z-10 max-w-lg mx-auto p-6 pb-40"
+          initial={{ opacity: 0, x: activeTab === 'home' ? -20 : 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: activeTab === 'home' ? 20 : -20 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="max-w-md mx-auto p-5 pb-32"
         >
           {activeTab === 'home' ? <Dashboard /> : <Profile user={user} />}
         </motion.main>
       </AnimatePresence>
 
-      {/* Premium Bottom Nav */}
-      <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-sm bg-zinc-900/80 backdrop-blur-3xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-2.5 flex justify-around items-center z-50 border border-white/5">
+      {/* Bottom Nav */}
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-sm bg-white/90 backdrop-blur-xl rounded-full shadow-2xl p-2 flex justify-around items-center z-50 border border-white/50">
         <button
           onClick={() => setActiveTab('home')}
-          className="relative flex-1 flex flex-col items-center py-4 rounded-full transition-all duration-500 group"
+          className="relative flex-1 flex flex-col items-center py-3 rounded-full transition-all duration-300 group"
         >
-          <AnimatePresence>
-            {activeTab === 'home' && (
-              <motion.div 
-                layoutId="nav-bg"
-                className="absolute inset-0 bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.2)]"
-                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-              />
-            )}
-          </AnimatePresence>
+          {activeTab === 'home' && (
+            <motion.div 
+              layoutId="nav-bg"
+              className="absolute inset-0 bg-brand-orange rounded-full shadow-brand"
+            />
+          )}
           <MapPin 
-            size={18} 
-            strokeWidth={activeTab === 'home' ? 2.5 : 2}
-            className={`relative z-10 transition-all duration-300 ${
-              activeTab === 'home' ? 'text-black' : 'text-zinc-500 group-hover:text-zinc-300'
+            size={20} 
+            className={`relative z-10 transition-colors duration-300 ${
+              activeTab === 'home' ? 'text-white fill-white/10' : 'text-zinc-400 group-hover:text-zinc-600'
             }`} 
           />
-          <span className={`relative z-10 text-[8px] font-black mt-1.5 uppercase tracking-[0.2em] transition-all duration-300 ${
-            activeTab === 'home' ? 'text-black opacity-100' : 'text-zinc-500 opacity-0 group-hover:opacity-40'
+          <span className={`relative z-10 text-[9px] font-black mt-1 uppercase tracking-wider transition-colors duration-300 ${
+            activeTab === 'home' ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-600'
           }`}>
             Karta
           </span>
         </button>
-
         <button
           onClick={() => setActiveTab('profile')}
-          className="relative flex-1 flex flex-col items-center py-4 rounded-full transition-all duration-500 group"
+          className="relative flex-1 flex flex-col items-center py-3 rounded-full transition-all duration-300 group"
         >
-          <AnimatePresence>
-            {activeTab === 'profile' && (
-              <motion.div 
-                layoutId="nav-bg"
-                className="absolute inset-0 bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.2)]"
-                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-              />
-            )}
-          </AnimatePresence>
+          {activeTab === 'profile' && (
+            <motion.div 
+              layoutId="nav-bg"
+              className="absolute inset-0 bg-brand-orange rounded-full shadow-brand"
+            />
+          )}
           <UserIcon 
-            size={18} 
-            strokeWidth={activeTab === 'profile' ? 2.5 : 2}
-            className={`relative z-10 transition-all duration-300 ${
-              activeTab === 'profile' ? 'text-black' : 'text-zinc-500 group-hover:text-zinc-300'
+            size={20} 
+            className={`relative z-10 transition-colors duration-300 ${
+              activeTab === 'profile' ? 'text-white fill-white/10' : 'text-zinc-400 group-hover:text-zinc-600'
             }`} 
           />
-          <span className={`relative z-10 text-[8px] font-black mt-1.5 uppercase tracking-[0.2em] transition-all duration-300 ${
-            activeTab === 'profile' ? 'text-black opacity-100' : 'text-zinc-500 opacity-0 group-hover:opacity-40'
+          <span className={`relative z-10 text-[9px] font-black mt-1 uppercase tracking-wider transition-colors duration-300 ${
+            activeTab === 'profile' ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-600'
           }`}>
             Profil
           </span>

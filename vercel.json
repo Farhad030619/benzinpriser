@@ -5,7 +5,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.openstreetmap.org https://*.overpass-api.de https://overpass.kumi.systems https://overpass.openstreetmap.fr https://maps.mail.ru;"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.openstreetmap.org https://*.overpass-api.de https://lz4.overpass-api.de https://overpass.kumi.systems https://overpass.openstreetmap.fr https://maps.mail.ru;"
         },
         {
           "key": "Strict-Transport-Security",

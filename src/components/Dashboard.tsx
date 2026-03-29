@@ -79,28 +79,24 @@ export default function Dashboard() {
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const { latitude, longitude } = pos.coords;
       try {
-        // 1. Get location context (county) for prices
+        // 1. Get location for prices
         let geoData: any = null;
         try {
           const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
           if (geoRes.ok) geoData = await geoRes.json();
-        } catch (e) {
-          console.warn('Reverse geocode failed:', e);
-        }
+        } catch (e) { console.warn('Geo failed:', e); }
 
         const county = geoData?.address?.county?.replace(' län', '') || geoData?.address?.state?.replace(' län', '') || 'Stockholms';
         const lanKey = Object.entries(countyToLan).find(([k]) => county.includes(k))?.[1] || 'stockholms-lan';
 
-        // 2. Fetch real prices via our proxy
+        // 2. Fetch costs
         let apiPrices: Record<string, string> = {};
         try {
           const priceRes = await fetch(`/api/prices?lan=${lanKey}`);
           if (priceRes.ok) apiPrices = await priceRes.json();
-        } catch (e) {
-          console.warn('Could not fetch real prices:', e);
-        }
+        } catch (e) { console.warn('Prices failed:', e); }
 
-        // 3. Fetch community prices
+        // 3. Community prices
         const allVerified: Record<string, Record<string, { price: number; updatedAt: Timestamp }>> = {};
         try {
           for (const ft of Object.keys(fuelApiKey) as FuelType[]) {
@@ -111,14 +107,13 @@ export default function Dashboard() {
               allVerified[d.stationId][ft] = { price: d.price, updatedAt: d.updatedAt };
             });
           }
-        } catch (e) {
-          console.warn('Community prices fetch failed:', e);
-        }
+        } catch (e) { console.warn('Firestore failed:', e); }
 
-        // 4. Fetch OSM stations with mirror rotation
-        const overpassQuery = `[out:json][timeout:30];node["amenity"="fuel"](around:20000,${latitude},${longitude});out 50;`;
+        // 4. Overpass - The working logic from 9dca7c2
+        const query = `[out:json][timeout:30];node["amenity"="fuel"](around:15000,${latitude},${longitude});out 50;`;
         const mirrors = [
           'https://overpass-api.de/api/interpreter',
+          'https://lz4.overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
           'https://overpass.openstreetmap.fr/api/interpreter'
         ];
@@ -126,23 +121,18 @@ export default function Dashboard() {
         let osmData: any = null;
         for (const mirror of mirrors) {
           try {
-            console.log(`Trying Overpass mirror: ${mirror}`);
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), 10000);
-            const res = await fetch(`${mirror}?data=${encodeURIComponent(overpassQuery)}`, { signal: controller.signal });
-            clearTimeout(id);
+            console.log('Trying mirror:', mirror);
+            const res = await fetch(`${mirror}?data=${encodeURIComponent(query)}`);
             if (res.ok) {
               osmData = await res.json();
               break;
             }
-          } catch (e) {
-            console.error(`Mirror ${mirror} failed:`, e);
-          }
+          } catch (e) { console.error('Mirror failed:', mirror, e); }
         }
 
-        if (!osmData) throw new Error('Alla Overpass-servrar är upptagna just nu. Försök igen om en stund.');
+        if (!osmData) throw new Error('Alla Overpass-servrar är upptagna. Prova igen om en stund.');
 
-        // 5. Process everything into types
+        // 5. Build
         const raw: RawStation[] = osmData.elements
           .filter((el: any) => el.tags?.name || el.tags?.brand)
           .map((el: any) => {
@@ -159,9 +149,7 @@ export default function Dashboard() {
               const isFresh = communityEntry && (Date.now() - communityEntry.updatedAt.toMillis() < 48 * 60 * 60 * 1000);
               const realPrice = !isFresh ? findPriceForStation(name, apiPrices, fuelApiKey[ft]) : null;
               
-              const price = isFresh
-                ? communityEntry.price
-                : realPrice ?? parseFloat((basePrices[ft] + (Math.random() * 0.6 - 0.3)).toFixed(2));
+              const price = isFresh ? communityEntry.price : (realPrice ?? parseFloat((basePrices[ft] + (Math.random() * 0.6 - 0.3)).toFixed(2)));
 
               prices[ft] = {
                 price,
@@ -176,15 +164,13 @@ export default function Dashboard() {
 
         setAllStations(raw.sort((a, b) => a.distance - b.distance));
         setLoading(false);
-      } catch (error: any) {
-        console.error('Error fetching stations:', error);
-        alert(error.message || 'Kunde inte hämta stationer.');
+      } catch (e: any) {
+        console.error('Fetch error:', e);
+        alert(e.message || 'Ett fel uppstod vid hämtning av stationer.');
         setLoading(false);
       }
-    }, (err) => {
-      console.error('Geolocation error:', err);
-      // Fallback for demo
-      alert('Kunde inte hämta din position. Kontrollera behörigheter.');
+    }, () => {
+      alert('Kunde inte hämta din position.');
       setLoading(false);
     }, { enableHighAccuracy: true, timeout: 5000 });
   };
